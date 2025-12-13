@@ -1,1 +1,69 @@
 #Tomo 6 Regulatory rules
+{
+  "tomo6_rules": {
+    "version": "2025",
+    "effective_date": "2025-01-01",
+    "validation_rules": [
+      {
+        "rule_id": "T6-001",
+        "rule_name": "Compatibilidad de Uso y Zonificación",
+        "article": "Reglamento Conjunto, Tomo 6, Artículo 6.1",
+        "description_es": "El uso propuesto debe ser compatible con el distrito de zonificación",
+        "description_en": "Proposed use must be compatible with zoning district",
+        "validation_type": "use_zone_compatibility",
+        "critical": true,
+        "ministerial_if_complies": true
+      },
+      {
+        "rule_id": "T6-002",
+        "rule_name": "Tamaño Mínimo de Lote",
+        "article": "Reglamento Conjunto, Tomo 6, Artículo 6.2.1",
+        "description_es": "La propiedad debe cumplir con el tamaño mínimo de lote para su zonificación",
+        "description_en": "Property must meet minimum lot size for its zoning",
+        "validation_type": "lot_size",
+        "critical": true,
+        "ministerial_if_complies": true
+      },
+      {
+        "rule_id": "T6-003",
+        "rule_name": "Altura Máxima Permitida",
+        "article": "Reglamento Conjunto, Tomo 6, Artículo 6.3.2",
+        "description_es": "La construcción no puede exceder la altura máxima permitida",
+        "description_en": "Construction cannot exceed maximum allowed height",
+        "validation_type": "height_limit",
+        "critical": true,
+        "ministerial_if_complies": true
+      },
+      {
+        "rule_id": "T6-004",
+        "rule_name": "Retiros Requeridos",
+        "article": "Reglamento Conjunto, Tomo 6, Artículo 6.4",
+        "description_es": "La construcción debe respetar los retiros mínimos (frontal, lateral, trasero)",
+        "description_en": "Construction must respect minimum setbacks (front, side, rear)",
+        "validation_type": "setbacks",
+        "critical": true,
+        "ministerial_if_complies": true
+      },
+      {
+        "rule_id": "T6-005",
+        "rule_name": "Cubierta Máxima",
+        "article": "Reglamento Conjunto, Tomo 6, Artículo 6.5",
+        "description_es": "El porcentaje de cubierta no puede exceder el máximo permitido",
+        "description_en": "Coverage percentage cannot exceed allowed maximum",
+        "validation_type": "coverage",
+        "critical": true,
+        "ministerial_if_complies": true
+      },
+      {
+        "rule_id": "T6-006",
+        "rule_name": "Estacionamiento Requerido",
+        "article": "Reglamento Conjunto, Tomo 6, Artículo 6.8",
+        "description_es": "Debe proveer el número mínimo de espacios de estacionamiento según el uso",
+        "description_en": "Must provide minimum number of parking spaces per use",
+        "validation_type": "parking",
+        "critical": false,
+        "ministerial_if_complies": true
+      }
+    ]
+  }
+}
