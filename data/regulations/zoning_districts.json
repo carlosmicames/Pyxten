@@ -1,1 +1,107 @@
-#All zoning districts
+# All zoning districts
+{
+  "zoning_districts": [
+    {
+      "code": "R-1",
+      "name_es": "Residencial Baja Densidad",
+      "name_en": "Low Density Residential",
+      "category": "residential",
+      "max_density": "2 units/acre",
+      "min_lot_size": "800 m²",
+      "max_height": "2 stories",
+      "setbacks": {
+        "front": "6 m",
+        "side": "3 m",
+        "rear": "6 m"
+      }
+    },
+    {
+      "code": "R-2",
+      "name_es": "Residencial Media Densidad",
+      "name_en": "Medium Density Residential",
+      "category": "residential",
+      "max_density": "6 units/acre",
+      "min_lot_size": "400 m²",
+      "max_height": "3 stories",
+      "setbacks": {
+        "front": "4.5 m",
+        "side": "2.5 m",
+        "rear": "4.5 m"
+      }
+    },
+    {
+      "code": "R-3",
+      "name_es": "Residencial Alta Densidad",
+      "name_en": "High Density Residential",
+      "category": "residential",
+      "max_density": "12 units/acre",
+      "min_lot_size": "200 m²",
+      "max_height": "4 stories",
+      "setbacks": {
+        "front": "3 m",
+        "side": "2 m",
+        "rear": "3 m"
+      }
+    },
+    {
+      "code": "R-T",
+      "name_es": "Residencial Turístico",
+      "name_en": "Tourist Residential",
+      "category": "residential",
+      "max_density": "20 units/acre",
+      "min_lot_size": "150 m²",
+      "max_height": "6 stories"
+    },
+    {
+      "code": "C-L",
+      "name_es": "Comercial Liviano",
+      "name_en": "Light Commercial",
+      "category": "commercial",
+      "max_coverage": "60%",
+      "max_height": "3 stories",
+      "parking_ratio": "1 per 30 m²"
+    },
+    {
+      "code": "C-I",
+      "name_es": "Comercial Intermedio",
+      "name_en": "Intermediate Commercial",
+      "category": "commercial",
+      "max_coverage": "70%",
+      "max_height": "5 stories",
+      "parking_ratio": "1 per 30 m²"
+    },
+    {
+      "code": "C-C",
+      "name_es": "Centro Comercial",
+      "name_en": "Commercial Center",
+      "category": "commercial",
+      "max_coverage": "80%",
+      "max_height": "No limit",
+      "parking_ratio": "1 per 25 m²"
+    },
+    {
+      "code": "I-L",
+      "name_es": "Industrial Liviano",
+      "name_en": "Light Industrial",
+      "category": "industrial",
+      "max_coverage": "70%",
+      "buffer_zone": "50 m from residential"
+    },
+    {
+      "code": "I-P",
+      "name_es": "Industrial Pesado",
+      "name_en": "Heavy Industrial",
+      "category": "industrial",
+      "max_coverage": "75%",
+      "buffer_zone": "100 m from residential"
+    },
+    {
+      "code": "A-R",
+      "name_es": "Agrícola Rústico",
+      "name_en": "Rural Agricultural",
+      "category": "agricultural",
+      "min_lot_size": "2000 m²",
+      "max_coverage": "20%"
+    }
+  ]
+}
