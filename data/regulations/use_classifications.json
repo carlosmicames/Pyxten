@@ -1,1 +1,101 @@
 #Use Types
+{
+  "use_types": [
+    {
+      "code": "RES-SF",
+      "name_es": "Residencial Unifamiliar",
+      "name_en": "Single Family Residential",
+      "category": "residential",
+      "compatible_zones": ["R-1", "R-2", "R-3", "R-T"],
+      "ministerial": true,
+      "description_es": "Vivienda para una sola familia"
+    },
+    {
+      "code": "RES-MF",
+      "name_es": "Residencial Multifamiliar",
+      "name_en": "Multifamily Residential",
+      "category": "residential",
+      "compatible_zones": ["R-2", "R-3", "R-T"],
+      "ministerial": true,
+      "description_es": "Edificio con múltiples unidades residenciales"
+    },
+    {
+      "code": "COM-OFFICE",
+      "name_es": "Oficina Profesional",
+      "name_en": "Professional Office",
+      "category": "commercial",
+      "compatible_zones": ["C-L", "C-I", "C-C"],
+      "ministerial": true,
+      "parking_required": "1 per 30 m²",
+      "description_es": "Oficina administrativa o profesional"
+    },
+    {
+      "code": "COM-RETAIL",
+      "name_es": "Comercio al Detal",
+      "name_en": "Retail",
+      "category": "commercial",
+      "compatible_zones": ["C-L", "C-I", "C-C"],
+      "ministerial": true,
+      "parking_required": "1 per 25 m²",
+      "description_es": "Venta al público de mercancías"
+    },
+    {
+      "code": "COM-RESTAURANT",
+      "name_es": "Restaurante",
+      "name_en": "Restaurant",
+      "category": "commercial",
+      "compatible_zones": ["C-L", "C-I", "C-C"],
+      "ministerial": false,
+      "requires_health_permit": true,
+      "parking_required": "1 per 10 seats",
+      "description_es": "Establecimiento de comida y bebida"
+    },
+    {
+      "code": "COM-WAREHOUSE",
+      "name_es": "Almacén",
+      "name_en": "Warehouse",
+      "category": "commercial",
+      "compatible_zones": ["C-I", "C-C", "I-L"],
+      "ministerial": true,
+      "description_es": "Almacenamiento de mercancías"
+    },
+    {
+      "code": "IND-LIGHT",
+      "name_es": "Manufactura Liviana",
+      "name_en": "Light Manufacturing",
+      "category": "industrial",
+      "compatible_zones": ["I-L", "I-P"],
+      "ministerial": false,
+      "requires_environmental": true,
+      "description_es": "Producción industrial sin contaminantes"
+    },
+    {
+      "code": "IND-HEAVY",
+      "name_es": "Manufactura Pesada",
+      "name_en": "Heavy Manufacturing",
+      "category": "industrial",
+      "compatible_zones": ["I-P"],
+      "ministerial": false,
+      "requires_environmental": true,
+      "description_es": "Producción industrial pesada"
+    },
+    {
+      "code": "AGR-FARM",
+      "name_es": "Finca Agrícola",
+      "name_en": "Agricultural Farm",
+      "category": "agricultural",
+      "compatible_zones": ["A-R"],
+      "ministerial": true,
+      "description_es": "Cultivo de productos agrícolas"
+    },
+    {
+      "code": "MIX-USE",
+      "name_es": "Uso Mixto",
+      "name_en": "Mixed Use",
+      "category": "mixed",
+      "compatible_zones": ["C-I", "C-C"],
+      "ministerial": false,
+      "description_es": "Combinación de usos residenciales y comerciales"
+    }
+  ]
+}
