@@ -264,9 +264,6 @@ except Exception as e:
     st.error(f"Error cargando datos: {str(e)}")
     st.stop()
 
-# Header
-st.markdown(unsafe_allow_html=True)
-
 # Main content layout
 col_sidebar, col_main = st.columns([1, 2.5])
 
