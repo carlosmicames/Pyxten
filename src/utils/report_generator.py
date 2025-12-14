@@ -23,17 +23,29 @@ class ReportGenerator:
             if text is None:
                 return ""
             text = str(text)
+            text = text.replace("\u00A0", " ")   # non-breaking space -> normal space
+            text = text.replace("\u200B", "")    # zero-width space (if present)
             return text.encode("latin-1", "ignore").decode("latin-1")
 
         # Break long words so FPDF can wrap them (URLs, long codes, etc.)
         def wrap_long_words(text: str, max_chunk: int = 50) -> str:
+            words = text.split(" ")
             out = []
-            for word in text.split(" "):
-                if len(word) > max_chunk:
-                    out.append("\n".join(word[i:i+max_chunk] for i in range(0, len(word), max_chunk)))
+            for w in words:
+                if len(w) > max_chunk:
+                    out.append("\n".join(w[i:i+max_chunk] for i in range(0, len(w), max_chunk)))
                 else:
-                    out.append(word)
-            return " ".join(out)
+                    out.append(w)
+            wrapped = " ".join(out)
+
+            # Hard-wrap fallback in case something is still unbreakable
+            lines = []
+            for line in wrapped.split("\n"):
+                if len(line) > 120:
+                    lines.append("\n".join(line[i:i+120] for i in range(0, len(line), 120)))
+                else:
+                    lines.append(line)
+            return "\n".join(lines)
 
         def safe_pdf_text(text) -> str:
             # Apply both protections consistently
@@ -42,6 +54,9 @@ class ReportGenerator:
         pdf = PDF()
         pdf.set_auto_page_break(auto=True, margin=15)
         pdf.add_page()
+        pdf.set_left_margin(10)
+        pdf.set_right_margin(10)
+        pdf.set_x(pdf.l_margin)
 
         # Header
         pdf.set_font("Arial", "B", 20)
@@ -126,6 +141,10 @@ class ReportGenerator:
         pdf.ln(10)
         pdf.set_font("Arial", "I", 9)
         pdf.set_text_color(128, 128, 128)
+        pdf.set_x(pdf.l_margin)          # <- force left margin
+        pdf.set_left_margin(10)          # optional but good
+        pdf.set_right_margin(10)         # optional but good
+        
         pdf.multi_cell(
             0, 5,
             safe_pdf_text(
