@@ -1,4 +1,4 @@
-#Load regulatory data
+# Load regulatory data
 import json
 from pathlib import Path
 from typing import Dict, List

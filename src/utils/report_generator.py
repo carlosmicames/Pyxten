@@ -1,4 +1,4 @@
-#PDF report generation
+# PDF report generation
 from fpdf import FPDF
 from datetime import datetime
 from typing import Dict
