@@ -111,13 +111,13 @@ class ZoningValidator:
         
         if is_compatible:
             return (
-                f"✓ El uso '{use['name_es']}' ES COMPATIBLE con la zonificación "
+                f"El uso '{use['name_es']}' ES COMPATIBLE con la zonificación "
                 f"{zoning['code']} ({zoning['name_es']})"
             )
         else:
             compatible_list = ", ".join(use.get("compatible_zones", []))
             return (
-                f"✗ El uso '{use['name_es']}' NO ES COMPATIBLE con la zonificación "
+                f"El uso '{use['name_es']}' NO ES COMPATIBLE con la zonificación "
                 f"{zoning['code']}. Este uso solo se permite en: {compatible_list}"
             )
     
@@ -126,18 +126,18 @@ class ZoningValidator:
         
         if not viable:
             return (
-                "❌ PROYECTO NO VIABLE - El uso propuesto no es compatible con "
+                "PROYECTO NO VIABLE - El uso propuesto no es compatible con "
                 "la zonificación. Se requieren cambios significativos."
             )
         
         if ministerial:
             return (
-                "✅ PROYECTO VIABLE - Permiso MINISTERIAL. El proyecto cumple con "
+                "PROYECTO VIABLE - Permiso MINISTERIAL. El proyecto cumple con "
                 "todos los requisitos de Tomo 6 y califica para tramitación expedita."
             )
         else:
             return (
-                "⚠️ PROYECTO VIABLE CON CONDICIONES - El uso es compatible pero "
+                "PROYECTO VIABLE CON CONDICIONES - El uso es compatible pero "
                 "requiere proceso DISCRECIONAL. Se necesitarán permisos adicionales."
             )
     

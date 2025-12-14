@@ -66,10 +66,6 @@ pyxten/
 - [ ] Phase 4: SBP integration
 - [ ] Phase 5: Municipal expansion
 
-## Partnership
-
-Developed in collaboration with Hub Group and Hector Morales (former President, Junta de Planificación 2009-2012).
-
 ## License
 
 Proprietary - All rights reserved
