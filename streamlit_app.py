@@ -95,10 +95,10 @@ except Exception as e:
     st.stop()
 
 # Header
-st.markdown('<div class="main-header">🏗️ PYXTEN</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header">🏗️ PYXTEN</div>', unsafe_allow_html=true)
 st.markdown(
-    '<div class="sub-header">Validación Inteligente de Permisos - Fase 1: Tomo 6</div>',
-    unsafe_allow_html=True
+    '<div class="sub-header">Validación Inteligente de Permisos</div>',
+    unsafe_allow_html=true
 )
 
 # Sidebar
@@ -115,8 +115,6 @@ with st.sidebar:
     - Fase 4: Municipios
     """)
     st.markdown("---")
-    st.markdown("### 🤝 Partnership")
-    st.markdown("Desarrollado en colaboración con **Hub Group** y Hector Morales")
 
 # Main form
 st.markdown("## Ingrese los datos del proyecto")
@@ -168,7 +166,7 @@ with col2:
     use_code = use_selection.split(" - ")[0] if use_selection else ""
 
 # Additional info expander
-with st.expander("ℹ️ Información Adicional (Opcional)"):
+with st.expander("Información Adicional (Opcional)"):
     project_description = st.text_area(
         "Descripción del Proyecto",
         placeholder="Ej: Construcción de residencia unifamiliar de 2 pisos...",
@@ -190,7 +188,7 @@ with col2:
 if validate_button:
     # Input validation
     if not all([property_address, municipality, zoning_code, use_code]):
-        st.error("❌ Por favor complete todos los campos requeridos")
+        st.error("Por favor complete todos los campos requeridos")
     else:
         with st.spinner("🔄 Validando proyecto contra Tomo 6..."):
             # Create validator
@@ -206,24 +204,24 @@ if validate_button:
             
             # Check for errors
             if "error" in result:
-                st.error(f"❌ Error: {result['error']}")
+                st.error(f" Error: {result['error']}")
             else:
                 # Store result in session state
                 st.session_state['validation_result'] = result
                 
                 # Display results
                 st.markdown("---")
-                st.markdown("## 📊 Resultados de Validación")
+                st.markdown("## Resultados de Validación")
                 
                 # Viability status
                 if result["viable"]:
                     st.markdown(
-                        '<div class="viable-box viable-yes">✅ PROYECTO VIABLE</div>',
+                        '<div class="viable-box viable-yes"> PROYECTO VIABLE</div>',
                         unsafe_allow_html=True
                     )
                 else:
                     st.markdown(
-                        '<div class="viable-box viable-no">❌ PROYECTO NO VIABLE</div>',
+                        '<div class="viable-box viable-no"> PROYECTO NO VIABLE</div>',
                         unsafe_allow_html=True
                     )
                 
@@ -232,7 +230,7 @@ if validate_button:
                 st.info(result["summary"])
                 
                 # Detailed results
-                st.markdown("### 🔍 Validaciones Detalladas")
+                st.markdown("### Validaciones Detalladas")
                 
                 for val_result in result["validation_results"]:
                     if val_result["passed"]:
@@ -270,7 +268,7 @@ if validate_button:
                 with col2:
                     pdf_bytes = ReportGenerator.generate_pdf(result)
                     st.download_button(
-                        label="📄 Descargar Reporte PDF",
+                        label="Descargar Reporte PDF",
                         data=pdf_bytes,
                         file_name=f"pyxten_validacion_{municipality.replace(' ', '_')}.pdf",
                         mime="application/pdf",
@@ -285,14 +283,14 @@ if validate_button:
                 Para validaciones más complejas o consultas sobre permisos discrecionales, 
                 contacte con nuestro equipo de expertos:
                 
-                **Hub Group** | expertos@pyxten.com | (787) 555-0100
+                Pyxten LLC | expertos@pyxten.com | (787) 506-0402
                 """)
 
 # Footer
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #666; font-size: 0.9rem;'>
-    <p>Pyxten © 2025 | Desarrollado en Puerto Rico</p>
-    <p><em>Este es un servicio de pre-validación. No constituye una determinación oficial de OGPe.</em></p>
+    <p>Pyxten LLC © 2025 | Desarrollado en Puerto Rico</p>
+    <p><em>Este informe ha sido generado por algoritmos basados en la interpretación legal del [Insertar Nombre Oficial del Nuevo Reglamento Conjunto] y la Regla de Uso de Terrenos vigente. Este documento constituye una pre-validación algorítmica y un informe de debida diligencia legal. No es, ni sustituye, la aprobación o permiso oficial de la Junta de Planificación de Puerto Rico, la Oficina de Gerencia de Permisos (OGPe) o cualquier municipio. Pyxten no asume responsabilidad por cambios regulatorios, información de entrada incorrecta o errores en la discreción final de las agencias gubernamentales.</em></p>
 </div>
 """, unsafe_allow_html=True)
