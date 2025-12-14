@@ -1,13 +1,20 @@
 import streamlit as st
 import os
+import sys
+from pathlib import Path
+
++#Add src to path
+sys.path.insert(0, str(Path(__file__).parent / "src"))
+
+# Load environment variables
 from dotenv import load_dotenv
+load_dotenv()
+
+# Import modules
 from src.database.rules_loader import RulesDatabase
 from src.validators.zoning_validator import ZoningValidator
 from src.ai.claude_interpreter import ClaudeInterpreter
 from src.utils.report_generator import ReportGenerator
-
-# Load environment variables
-load_dotenv()
 
 # Page config
 st.set_page_config(
