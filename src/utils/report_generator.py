@@ -67,22 +67,27 @@ class ReportGenerator:
 
         # Project Info
         pdf.set_font("Arial", "B", 14)
+        pdf.set_x(pdf.l_margin)  # Reset X position
         pdf.cell(0, 8, safe_pdf_text("Información del Proyecto"), ln=True)
         pdf.set_font("Arial", "", 11)
         pdf.ln(3)
 
         # Property info
+        pdf.set_x(pdf.l_margin)  # Reset X position
         pdf.cell(60, 6, safe_pdf_text("Dirección:"), border=1)
         pdf.cell(0, 6, safe_pdf_text(validation_result.get("property_address", "")), border=1, ln=True)
 
+        pdf.set_x(pdf.l_margin)  # Reset X position
         pdf.cell(60, 6, safe_pdf_text("Municipio:"), border=1)
         pdf.cell(0, 6, safe_pdf_text(validation_result.get("municipality", "")), border=1, ln=True)
 
+        pdf.set_x(pdf.l_margin)  # Reset X position
         pdf.cell(60, 6, safe_pdf_text("Zonificación:"), border=1)
         zoning = validation_result.get("zoning_district", {}) or {}
         zone_text = f"{zoning.get('code','')} - {zoning.get('name','')}"
         pdf.cell(0, 6, safe_pdf_text(zone_text), border=1, ln=True)
 
+        pdf.set_x(pdf.l_margin)  # Reset X position
         pdf.cell(60, 6, safe_pdf_text("Uso Propuesto:"), border=1)
         proposed = validation_result.get("proposed_use", {}) or {}
         use_text = f"{proposed.get('code','')} - {proposed.get('name','')}"
@@ -92,6 +97,7 @@ class ReportGenerator:
 
         # Viability Status
         pdf.set_font("Arial", "B", 14)
+        pdf.set_x(pdf.l_margin)  # Reset X position
         if validation_result.get("viable", False):
             pdf.set_text_color(0, 128, 0)
             pdf.cell(0, 8, safe_pdf_text("PROYECTO VIABLE"), ln=True)
@@ -104,11 +110,13 @@ class ReportGenerator:
 
         # Summary
         pdf.set_font("Arial", "", 11)
+        pdf.set_x(pdf.l_margin)  # Reset X position
         pdf.multi_cell(0, 6, safe_pdf_text(validation_result.get("summary", "")))
         pdf.ln(5)
 
         # Validation Results
         pdf.set_font("Arial", "B", 14)
+        pdf.set_x(pdf.l_margin)  # Reset X position
         pdf.cell(0, 8, safe_pdf_text("Resultados de Validación"), ln=True)
         pdf.ln(3)
 
@@ -117,33 +125,34 @@ class ReportGenerator:
             status = "[OK]" if passed else "[X]"
 
             pdf.set_font("Arial", "B", 11)
+            pdf.set_x(pdf.l_margin)  # Reset X position
             pdf.cell(0, 6, safe_pdf_text(f"{status} {result.get('rule_name','')}"), ln=True)
 
             pdf.set_font("Arial", "", 10)
-            pdf.cell(10)
+            pdf.set_x(pdf.l_margin + 10)  # Indent
             pdf.multi_cell(0, 5, safe_pdf_text(result.get("message", "")))
 
             pdf.set_font("Arial", "I", 9)
-            pdf.cell(10)
+            pdf.set_x(pdf.l_margin + 10)  # Indent
             pdf.cell(0, 5, safe_pdf_text(f"Referencia: {result.get('article','')}"), ln=True)
             pdf.ln(3)
 
-        # Next Steps
+        # Next Steps - FIX: Reset X position before multi_cell
         pdf.set_font("Arial", "B", 14)
+        pdf.set_x(pdf.l_margin)  # Reset X position
         pdf.cell(0, 8, safe_pdf_text("Próximos Pasos Recomendados"), ln=True)
         pdf.ln(3)
 
         pdf.set_font("Arial", "", 11)
         for step in validation_result.get("next_steps", []):
+            pdf.set_x(pdf.l_margin)  # FIX: Reset X position before each multi_cell
             pdf.multi_cell(0, 6, safe_pdf_text(step))
 
         # Footer
         pdf.ln(10)
         pdf.set_font("Arial", "I", 9)
         pdf.set_text_color(128, 128, 128)
-        pdf.set_x(pdf.l_margin)          # <- force left margin
-        pdf.set_left_margin(10)          # optional but good
-        pdf.set_right_margin(10)         # optional but good
+        pdf.set_x(pdf.l_margin)  # Reset X position
         
         pdf.multi_cell(
             0, 5,
