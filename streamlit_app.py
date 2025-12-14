@@ -95,10 +95,10 @@ except Exception as e:
     st.stop()
 
 # Header
-st.markdown('<div class="main-header">🏗️ PYXTEN</div>', unsafe_allow_html=true)
+st.markdown('<div class="main-header">🏗️ PYXTEN</div>', unsafe_allow_html=rue)
 st.markdown(
     '<div class="sub-header">Validación Inteligente de Permisos</div>',
-    unsafe_allow_html=true
+    unsafe_allow_html=True
 )
 
 # Sidebar
