@@ -164,4 +164,4 @@ class ReportGenerator:
             )
         )
 
-        return bytes(pdf.output(dest="S").encode("latin-1"))
+        return bytes(pdf.output())
