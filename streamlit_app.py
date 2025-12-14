@@ -29,7 +29,7 @@ st.markdown("""
 <style>
     /* Main background gradient */
     .stApp {
-        background: linear-gradient(135deg, #34d399 0%, #10b981 50%, #14b8a6 100%);
+         background: #ffffff;
     }
     
     /* Hide default Streamlit elements */
@@ -61,6 +61,7 @@ st.markdown("""
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         margin-bottom: 0.5rem;
+        letter-spacing: 0.5px;
     }
     
     .pyxten-tagline {
@@ -219,9 +220,10 @@ st.markdown("""
         text-align: center;
         padding: 2rem;
         margin-top: 3rem;
-        color: white;
+        color: #374151;
         font-size: 0.9rem;
     }
+    .footer a { color: #10b981 !important; }
     
     /* Download button */
     .stDownloadButton > button {
@@ -263,12 +265,7 @@ except Exception as e:
     st.stop()
 
 # Header
-st.markdown("""
-<div class="pyxten-header">
-    <div class="pyxten-logo">Py✗ten</div>
-    <div class="pyxten-tagline">Accelerate Your Construction Permits with Intelligent Validation</div>
-</div>
-""", unsafe_allow_html=True)
+st.markdown(unsafe_allow_html=True)
 
 # Main content layout
 col_sidebar, col_main = st.columns([1, 2.5])
@@ -277,6 +274,11 @@ col_sidebar, col_main = st.columns([1, 2.5])
 with col_sidebar:
     st.markdown("""
     <div class="sidebar-card">
+        <div class="pyxten-logo" style="font-size:2rem;">Py✗ten</div>
+        <div class="pyxten-tagline" style="margin-bottom:1.5rem;">
+            Acelera tus Proyectos de Construcción con Validaciones de Zonificación Automatizadas
+        </div>
+
         <div class="sidebar-title">
             📋 Sobre Pyxten
         </div>

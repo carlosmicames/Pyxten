@@ -164,4 +164,5 @@ class ReportGenerator:
             )
         )
 
-        return pdf.output(dest="S").encode("latin-1")
+        out = pdf.output(dest="S")
+        return out if isinstance(out, (bytes, bytearray)) else out.encode("latin-1")
