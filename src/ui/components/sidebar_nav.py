@@ -32,7 +32,7 @@ def render_sidebar():
         
         # Homepage / Validación
         if st.button(
-            "🏠 Validación Fase 1",
+            "Validación Fase 1",
             key="nav_homepage",
             use_container_width=True,
             type="primary" if current_page == "homepage" else "secondary"
@@ -42,7 +42,7 @@ def render_sidebar():
         
         # Dashboard
         if st.button(
-            "📊 Dashboard",
+            "Dashboard",
             key="nav_dashboard",
             use_container_width=True,
             type="primary" if current_page == "dashboard" else "secondary"
@@ -52,7 +52,7 @@ def render_sidebar():
         
         # Crear Nuevo Proyecto
         if st.button(
-            "➕ Crear Nuevo Proyecto",
+            "+ Crear Nuevo Proyecto",
             key="nav_new_project",
             use_container_width=True,
             type="primary" if current_page == "new_project" else "secondary"
@@ -63,7 +63,7 @@ def render_sidebar():
         # Proyectos Activos
         active_count = len(SessionManager.get_active_projects())
         if st.button(
-            f"📁 Proyectos Activos ({active_count})",
+            f"Proyectos Activos ({active_count})",
             key="nav_active_projects",
             use_container_width=True,
             type="primary" if current_page == "active_projects" else "secondary"
@@ -73,7 +73,7 @@ def render_sidebar():
         
         # Precios
         if st.button(
-            "💰 Precios",
+            "Precios",
             key="nav_pricing",
             use_container_width=True,
             type="primary" if current_page == "pricing" else "secondary"

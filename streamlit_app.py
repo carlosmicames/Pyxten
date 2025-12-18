@@ -294,9 +294,9 @@ st.markdown("""
         de OGPe o la Junta de Planificación. Verifica con un Profesional Autorizado antes de someter solicitud formal.</em>
     </p>
     <div style="margin-top: 1rem; display: flex; justify-content: center; gap: 1.5rem;">
-        <a href="mailto:info@pyxten.com" style="color: #10b981; text-decoration: none;">📧 Contacto</a>
-        <a href="#" style="color: #10b981; text-decoration: none;">📄 Términos</a>
-        <a href="#" style="color: #10b981; text-decoration: none;">🔒 Privacidad</a>
+        <a href="mailto:info@pyxten.com" style="color: #10b981; text-decoration: none;">Contacto</a>
+        <a href="#" style="color: #10b981; text-decoration: none;">Términos</a>
+        <a href="#" style="color: #10b981; text-decoration: none;">Privacidad</a>
     </div>
 </div>
 """, unsafe_allow_html=True)

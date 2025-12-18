@@ -26,7 +26,7 @@ def render_homepage(rules_db, claude_ai=None):
     # Check if can validate
     if not SessionManager.can_validate():
         st.error("""
-        ### 🚫 Has alcanzado el límite de validaciones gratuitas
+        ### Has alcanzado el límite de validaciones gratuitas
         
         Actualiza a Plan Profesional para:
         - ✅ Validaciones Fase 1 ilimitadas
@@ -53,7 +53,7 @@ def render_homepage(rules_db, claude_ai=None):
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); max-width: 900px; margin: 0 auto;">
     """, unsafe_allow_html=True)
     
-    st.markdown("### 📋 Información del Proyecto")
+    st.markdown("### Información del Proyecto")
     st.markdown("Completa los datos para validar tu proyecto contra el Tomo 6")
     
     # Property Address
@@ -106,18 +106,19 @@ def render_homepage(rules_db, claude_ai=None):
     use_code = use_selection.split(" - ")[0] if use_selection else ""
     
     # Optional project description
-    with st.expander("➕ Agregar Descripción (Opcional)"):
+    with st.expander("Agregar Descripción (Opcional)"):
         project_description = st.text_area(
             "Descripción del Proyecto",
             placeholder="Ej: Construcción de residencia unifamiliar de 2 niveles con piscina...",
             help="Detalles adicionales que ayuden a entender el proyecto"
+            style=text-align: center;
         )
     
     st.markdown("<br>", unsafe_allow_html=True)
     
     # Validate button (prominent)
     validate_button = st.button(
-        "✨ Validar Proyecto Ahora",
+        "Validar Proyecto Ahora",
         use_container_width=True,
         type="primary"
     )
@@ -129,7 +130,7 @@ def render_homepage(rules_db, claude_ai=None):
         if not all([property_address, municipality, zoning_code, use_code]):
             st.error("Por favor completa todos los campos marcados con *")
         else:
-            with st.spinner("🔍 Validando proyecto contra Reglamento Conjunto Tomo 6..."):
+            with st.spinner("Validando proyecto")
                 validator = ZoningValidator(rules_db)
                 
                 result = validator.validate_project(
