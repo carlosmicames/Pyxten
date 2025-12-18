@@ -32,7 +32,7 @@ class SessionManager:
         
         # Navegación - IMPORTANTE: default es 'dashboard'
         if 'current_page' not in st.session_state:
-            st.session_state.current_page = 'dashboard'
+            st.session_state.current_page = 'homepage'
         
         # Historial de validaciones (últimas 10)
         if 'validation_history' not in st.session_state:
