@@ -234,7 +234,7 @@ elif current_page == 'dashboard':
     render_dashboard()
     
     st.markdown("---")
-    st.markdown("## 🔍 Validación de Proyecto (Fase 1)")
+    st.markdown("## Validación de Proyecto (Fase 1)")
     
     # Fase 1 Validation Form
     with st.container():
@@ -245,22 +245,23 @@ elif current_page == 'dashboard':
         # Check if can validate
         if not SessionManager.can_validate():
             st.error("""
-            ❌ **Has alcanzado el límite de validaciones gratuitas**
+            **Has alcanzado el límite de validaciones gratuitas**
             
             Actualiza a Plan Profesional para validaciones ilimitadas.
             """)
             
-            if st.button("💳 Ver Planes", key="upgrade_from_form"):
-                SessionManager.navigate_to('pricing')
+            if st.button("Ver Planes", key="upgrade_from_form"):
+                st.session_state.current_page = 'pricing'
+                st.rerun()
         else:
             # Show remaining validations
             remaining = SessionManager.get_remaining_validations()
             if remaining <= 2:
-                st.warning(f"⚠️ Te quedan {remaining} validaciones gratuitas este mes")
+                st.warning(f"Te quedan {remaining} validaciones gratuitas este mes")
             
             # Property Address
             property_address = st.text_input(
-                "🏠 Dirección de la Propiedad",
+                "Dirección de la Propiedad",
                 placeholder="Ej: Calle Luna 123, Urb. San Patricio, San Juan",
                 help="Ingresa la dirección completa de la propiedad",
                 key="prop_address"
@@ -271,7 +272,7 @@ elif current_page == 'dashboard':
             
             with col1:
                 municipality = st.selectbox(
-                    "🏛️ Municipio",
+                    "Municipio",
                     options=[""] + rules_db.get_municipalities(),
                     help="Selecciona el municipio",
                     index=0
@@ -284,7 +285,7 @@ elif current_page == 'dashboard':
                 ]
                 
                 zoning_selection = st.selectbox(
-                    "📍 Distrito de Zonificación",
+                    "Distrito de Zonificación",
                     options=zoning_options,
                     help="Selecciona la zonificación",
                     index=0
@@ -299,7 +300,7 @@ elif current_page == 'dashboard':
             ]
             
             use_selection = st.selectbox(
-                "🏗️ Uso Propuesto",
+                "Uso Propuesto",
                 options=use_options,
                 help="Selecciona el uso propuesto",
                 index=0
@@ -308,7 +309,7 @@ elif current_page == 'dashboard':
             use_code = use_selection.split(" - ")[0] if use_selection else ""
             
             # Additional info
-            with st.expander("📝 Información Adicional (Opcional)"):
+            with st.expander("Información Adicional (Opcional)"):
                 project_description = st.text_area(
                     "Descripción del Proyecto",
                     placeholder="Ej: Construcción de residencia unifamiliar...",
@@ -318,7 +319,7 @@ elif current_page == 'dashboard':
             # Validate button
             st.markdown("<br>", unsafe_allow_html=True)
             validate_button = st.button(
-                "🔍 Validar Proyecto",
+                "Validar Proyecto",
                 use_container_width=True,
                 type="primary"
             )
@@ -326,9 +327,9 @@ elif current_page == 'dashboard':
             # Validation logic
             if validate_button:
                 if not all([property_address, municipality, zoning_code, use_code]):
-                    st.error("⚠️ Por favor completa todos los campos requeridos")
+                    st.error("Por favor completa todos los campos requeridos")
                 else:
-                    with st.spinner("🔄 Validando proyecto contra Tomo 6..."):
+                    with st.spinner("Validando proyecto contra Tomo 6..."):
                         validator = ZoningValidator(rules_db)
                         
                         result = validator.validate_project(
@@ -339,7 +340,7 @@ elif current_page == 'dashboard':
                         )
                         
                         if "error" in result:
-                            st.error(f"❌ Error: {result['error']}")
+                            st.error(f"Error: {result['error']}")
                         else:
                             # Add to history
                             SessionManager.add_validation_to_history(result)
@@ -357,33 +358,33 @@ elif current_page == 'dashboard':
                             
                             # Display results
                             st.markdown("---")
-                            st.markdown("## 📊 Resultados de Validación")
+                            st.markdown("## Resultados de Validación")
                             
                             # Viability
                             if result["viable"]:
                                 st.markdown(
-                                    '<div class="viable-box viable-yes">✓ PROYECTO VIABLE</div>',
+                                    '<div class="viable-box viable-yes">PROYECTO VIABLE</div>',
                                     unsafe_allow_html=True
                                 )
                             else:
                                 st.markdown(
-                                    '<div class="viable-box viable-no">✗ PROYECTO NO VIABLE</div>',
+                                    '<div class="viable-box viable-no">PROYECTO NO VIABLE</div>',
                                     unsafe_allow_html=True
                                 )
                             
                             # Summary
-                            st.markdown("### 📝 Resumen")
+                            st.markdown("### Resumen")
                             st.info(result["summary"])
                             
                             # Detailed results
-                            st.markdown("### 📋 Validaciones Detalladas")
+                            st.markdown("### Validaciones Detalladas")
                             
                             for val_result in result["validation_results"]:
                                 if val_result["passed"]:
                                     st.markdown(
                                         f"""
                                         <div class="rule-passed">
-                                            <strong>✓ {val_result['rule_name']}</strong><br>
+                                            <strong>{val_result['rule_name']}</strong><br>
                                             {val_result['message']}<br>
                                             <small><em>{val_result['article']}</em></small>
                                         </div>
@@ -394,7 +395,7 @@ elif current_page == 'dashboard':
                                     st.markdown(
                                         f"""
                                         <div class="rule-failed">
-                                            <strong>✗ {val_result['rule_name']}</strong><br>
+                                            <strong>{val_result['rule_name']}</strong><br>
                                             {val_result['message']}<br>
                                             <small><em>{val_result['article']}</em></small>
                                         </div>
@@ -403,17 +404,17 @@ elif current_page == 'dashboard':
                                     )
                             
                             # Next steps
-                            st.markdown("### 📋 Próximos Pasos Recomendados")
+                            st.markdown("### Próximos Pasos Recomendados")
                             for i, step in enumerate(result["next_steps"], 1):
                                 st.markdown(f"{i}. {step}")
                             
                             # Download report
                             st.markdown("---")
-                            st.markdown("### 📥 Descargar Reporte")
+                            st.markdown("### Descargar Reporte")
                             
                             pdf_bytes = ReportGenerator.generate_pdf(result)
                             st.download_button(
-                                label="📄 Descargar Reporte PDF",
+                                label="Descargar Reporte PDF",
                                 data=pdf_bytes,
                                 file_name=f"pyxten_validacion_{municipality.replace(' ', '_').lower()}.pdf",
                                 mime="application/pdf",
@@ -427,7 +428,7 @@ elif current_page == 'dashboard':
                                     'fase1',
                                     pdf_bytes
                                 )
-                                st.success(f"✅ Reporte agregado al proyecto '{current_project['name']}'")
+                                st.success(f"Reporte agregado al proyecto '{current_project['name']}'")
         
         st.markdown('</div>', unsafe_allow_html=True)
 

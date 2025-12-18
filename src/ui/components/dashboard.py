@@ -1,4 +1,4 @@
-# Dashboard Component - Página principal con 4 cards
+# Dashboard Component - FINAL: Sin emojis, con botón Comienza ahora
 import streamlit as st
 from src.services.session_manager import SessionManager
 from datetime import datetime
@@ -73,10 +73,10 @@ def render_dashboard():
     current_project = SessionManager.get_current_project()
     
     if current_project:
-        st.markdown(f"## 📁 {current_project['name']}")
-        st.caption(f"📍 {current_project['address']} | {current_project['municipality']}")
+        st.markdown(f"## {current_project['name']}")
+        st.caption(f"{current_project['address']} | {current_project['municipality']}")
     else:
-        st.markdown("## 🏠 Dashboard")
+        st.markdown("## Dashboard")
         st.caption("Panel de control de Pyxten")
     
     st.divider()
@@ -106,12 +106,12 @@ def render_recent_validations_card():
     """Card de validaciones recientes"""
     
     st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
-    st.markdown("### 📋 Validaciones Recientes")
+    st.markdown("### Validaciones Recientes")
     
     history = SessionManager.get_validation_history()
     
     if history:
-        for val in history[:5]:  # Mostrar últimas 5
+        for val in history[:5]:
             with st.container():
                 col1, col2 = st.columns([3, 1])
                 
@@ -121,13 +121,13 @@ def render_recent_validations_card():
                 
                 with col2:
                     if val.get('viable'):
-                        st.markdown("🟢 Viable")
+                        st.markdown("Viable")
                     else:
-                        st.markdown("🔴 No Viable")
+                        st.markdown("No Viable")
                 
                 st.divider()
     else:
-        st.info("No hay validaciones recientes. ¡Crea tu primera validación!")
+        st.info("No hay validaciones recientes. Crea tu primera validación")
     
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -136,7 +136,7 @@ def render_active_projects_card():
     """Card de proyectos activos"""
     
     st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
-    st.markdown("### 📂 Proyectos Activos")
+    st.markdown("### Proyectos Activos")
     
     projects = SessionManager.get_active_projects()
     
@@ -146,7 +146,7 @@ def render_active_projects_card():
         
         st.divider()
         
-        for project in projects[:3]:  # Mostrar primeros 3
+        for project in projects[:3]:
             with st.container():
                 st.markdown(f"**{project['name']}**")
                 st.caption(f"Creado: {project['created_date'][:10]}")
@@ -157,53 +157,54 @@ def render_active_projects_card():
                 
                 st.divider()
     else:
-        st.info("No tienes proyectos activos.")
-        if st.button("➕ Crear Proyecto", key="create_new_proj", use_container_width=True):
-            # Esto debería abrir el modal de crear proyecto
-            st.info("Usa el menú 'Proyectos' → 'Proyecto Nuevo' para crear uno.")
+        st.info("No tienes proyectos activos")
+        if st.button("Crear Proyecto", key="create_new_proj", use_container_width=True):
+            st.info("Usa el menú 'Proyectos' para crear uno")
     
     st.markdown('</div>', unsafe_allow_html=True)
 
 
 def render_new_validation_card():
-    """Card de nueva validación - CTA principal"""
+    """Card de nueva validación - CTA principal con botón Comienza ahora"""
     
     st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
-    st.markdown("### 🚀 Nueva Validación")
+    st.markdown("### Nueva Validación")
     
-    # Verificar si puede validar
     can_validate = SessionManager.can_validate()
     
     if can_validate:
         st.markdown("""
         <div style="text-align: center; padding: 1rem;">
             <p style="font-size: 1.1rem; color: #374151;">
-                ¿Listo para validar tu próximo proyecto?
+                ¿Listo para comenzar tu proyecto?
             </p>
         </div>
         """, unsafe_allow_html=True)
         
+        # Botón "Comienza ahora" que navega a Proyectos
         if st.button(
-            "🔍 Iniciar Validación Fase 1",
-            key="start_validation",
+            "Comienza ahora",
+            key="start_project_now",
             type="primary",
             use_container_width=True
         ):
-            # Scroll down to validation form (será implementado)
-            st.info("👇 Completa el formulario abajo para validar")
+            st.session_state.current_page = 'projects'
+            st.session_state.show_projects_menu = True
+            st.rerun()
     else:
         st.warning("""
         Has alcanzado el límite de validaciones gratuitas este mes.
         
         **Actualiza a Plan Profesional para:**
-        - ✅ Validaciones ilimitadas Fase 1
-        - ✅ 10 validaciones PCOC/mes
-        - ✅ Memorial Explicativo generado
-        - ✅ Proyectos guardados
+        - Validaciones ilimitadas Fase 1
+        - 10 validaciones PCOC/mes
+        - Memorial Explicativo generado
+        - Proyectos guardados
         """)
         
-        if st.button("💳 Ver Planes", key="upgrade_plan", use_container_width=True):
-            SessionManager.navigate_to('pricing')
+        if st.button("Ver Planes", key="upgrade_plan", use_container_width=True):
+            st.session_state.current_page = 'pricing'
+            st.rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -212,7 +213,7 @@ def render_usage_card():
     """Card de uso mensual"""
     
     st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
-    st.markdown("### 📊 Uso del Mes")
+    st.markdown("### Uso del Mes")
     
     used = st.session_state.validation_count
     limit = st.session_state.validation_limit
@@ -231,9 +232,9 @@ def render_usage_card():
     """, unsafe_allow_html=True)
     
     if remaining > 0:
-        st.success(f"✅ Te quedan **{remaining}** validaciones gratuitas")
+        st.success(f"Te quedan **{remaining}** validaciones gratuitas")
     else:
-        st.error("❌ Has usado todas tus validaciones gratuitas")
+        st.error("Has usado todas tus validaciones gratuitas")
     
     st.divider()
     
