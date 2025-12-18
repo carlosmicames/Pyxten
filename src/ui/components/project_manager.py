@@ -8,10 +8,10 @@ def render_project_manager():
     
     SessionManager.initialize()
     
-    st.markdown("## 📁 Gestor de Proyectos")
+    st.markdown("## Gestor de Proyectos")
     
     # Tabs para diferentes vistas
-    tab1, tab2, tab3 = st.tabs(["📂 Mis Proyectos", "➕ Nuevo Proyecto", "📤 Exportar"])
+    tab1, tab2, tab3 = st.tabs(["Mis Proyectos", "Nuevo Proyecto", "Exportar"])
     
     with tab1:
         render_projects_list()
@@ -41,8 +41,8 @@ def render_projects_list():
             
             with col1:
                 st.markdown(f"### {project['name']}")
-                st.caption(f"📍 {project['address']}")
-                st.caption(f"🏛️ {project['municipality']}")
+                st.caption(f"{project['address']}")
+                st.caption(f"{project['municipality']}")
             
             with col2:
                 status_emoji = {
@@ -72,7 +72,7 @@ def render_projects_list():
             
             # Mostrar detalles del proyecto actual
             if SessionManager.get_current_project() and SessionManager.get_current_project()['id'] == project_id:
-                with st.expander("📋 Detalles del Proyecto", expanded=True):
+                with st.expander("Detalles del Proyecto", expanded=True):
                     render_project_details(project)
             
             st.divider()
@@ -105,7 +105,7 @@ def render_project_details(project):
     
     # Notas del proyecto
     st.markdown("---")
-    st.markdown("**📝 Notas del Proyecto**")
+    st.markdown("**Notas del Proyecto**")
     notes = st.text_area(
         "Notas",
         value=project.get('notes', ''),
@@ -114,13 +114,13 @@ def render_project_details(project):
         height=100
     )
     
-    if st.button("💾 Guardar Notas", key=f"save_notes_{project['id']}"):
+    if st.button("Guardar Notas", key=f"save_notes_{project['id']}"):
         SessionManager.update_project(project['id'], {'notes': notes})
         st.success("Notas guardadas")
     
     # Cambiar estado
     st.markdown("---")
-    st.markdown("**🔄 Cambiar Estado**")
+    st.markdown("**Cambiar Estado**")
     new_status = st.selectbox(
         "Estado",
         options=['En Progreso', 'Completado', 'Pausado'],
@@ -166,14 +166,14 @@ def render_new_project_form():
         
         with col1:
             submitted = st.form_submit_button(
-                "✅ Crear Proyecto",
+                "Crear Proyecto",
                 type="primary",
                 use_container_width=True
             )
         
         with col2:
             cancel = st.form_submit_button(
-                "❌ Cancelar",
+                "Cancelar",
                 use_container_width=True
             )
         
@@ -185,7 +185,7 @@ def render_new_project_form():
                     municipality=project_municipality
                 )
                 
-                st.success(f"✅ Proyecto '{project_name}' creado exitosamente!")
+                st.success(f"Proyecto '{project_name}' creado exitosamente!")
                 st.info(f"ID del Proyecto: `{project_id}`")
                 
                 # Navigate to dashboard
@@ -193,7 +193,7 @@ def render_new_project_form():
                     SessionManager.navigate_to('dashboard')
                     st.rerun()
             else:
-                st.error("⚠️ Por favor completa todos los campos marcados con *")
+                st.error("Por favor completa todos los campos marcados con *")
         
         if cancel:
             SessionManager.navigate_to('dashboard')
@@ -203,7 +203,7 @@ def render_new_project_form():
 def render_export_options():
     """Opciones de exportación de proyectos"""
     
-    st.markdown("### 📤 Exportar Proyectos")
+    st.markdown("### Exportar Proyectos")
     
     projects = SessionManager.get_all_projects()
     
@@ -213,9 +213,9 @@ def render_export_options():
     
     st.markdown("""
     Exporta tus proyectos para:
-    - 💾 Hacer backup
-    - 📧 Compartir con tu equipo
-    - 📂 Guardar para referencia futura
+    - Hacer backup
+    - Compartir con tu equipo
+    - Guardar para referencia futura
     
     **Nota:** Los archivos grandes (PDFs, documentos) no se incluyen en la exportación.
     Solo se exportan metadatos y configuraciones.
@@ -263,7 +263,7 @@ def render_export_options():
             json_data = json.dumps(export_data, indent=2, ensure_ascii=False)
             
             st.download_button(
-                label=f"📥 Descargar '{selected}' (JSON)",
+                label=f"Descargar '{selected}' (JSON)",
                 data=json_data,
                 file_name=f"pyxten_proyecto_{project_id}.json",
                 mime="application/json",
@@ -278,7 +278,7 @@ def render_export_options():
             json_data = json.dumps(export_data, indent=2, ensure_ascii=False)
             
             st.download_button(
-                label=f"📥 Descargar '{current['name']}' (JSON)",
+                label=f"Descargar '{current['name']}' (JSON)",
                 data=json_data,
                 file_name=f"pyxten_proyecto_{current['id']}.json",
                 mime="application/json",

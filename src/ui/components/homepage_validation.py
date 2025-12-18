@@ -110,8 +110,7 @@ def render_homepage(rules_db, claude_ai=None):
         project_description = st.text_area(
             "Descripción del Proyecto",
             placeholder="Ej: Construcción de residencia unifamiliar de 2 niveles con piscina...",
-            help="Detalles adicionales que ayuden a entender el proyecto"
-            style=text-align: center;
+            help="Detalles adicionales que ayuden a entender el proyecto",
         )
     
     st.markdown("<br>", unsafe_allow_html=True)
@@ -130,7 +129,7 @@ def render_homepage(rules_db, claude_ai=None):
         if not all([property_address, municipality, zoning_code, use_code]):
             st.error("Por favor completa todos los campos marcados con *")
         else:
-            with st.spinner("Validando proyecto")
+            with st.spinner("Validando proyecto"):
                 validator = ZoningValidator(rules_db)
                 
                 result = validator.validate_project(
@@ -167,7 +166,7 @@ def render_validation_results(result, property_address, municipality):
     st.markdown("""
     <div style="background: #f9fafb; padding: 2rem; border-radius: 16px;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); margin-top: 2rem;">
-    <div style= "font-size: 1.5rem; font-weight: 600; color: #111827; text-align: center; margin-bottom: 1rem;">
+    <div style="font-size: 1.5rem; font-weight: 600; color: #111827; text-align: center; margin-bottom: 1rem;">
         Realizar Validacion Completa
     </div>
     ...
