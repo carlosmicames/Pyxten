@@ -1,4 +1,4 @@
-# Session Manager - Maneja el estado de la aplicación
+# Session Manager - CORREGIDO para evitar recursión
 import streamlit as st
 from datetime import datetime
 from typing import Dict, Optional, List
@@ -30,13 +30,20 @@ class SessionManager:
         if 'validation_limit' not in st.session_state:
             st.session_state.validation_limit = 5
         
-        # Navegación
+        # Navegación - IMPORTANTE: default es 'dashboard'
         if 'current_page' not in st.session_state:
             st.session_state.current_page = 'dashboard'
         
         # Historial de validaciones (últimas 10)
         if 'validation_history' not in st.session_state:
             st.session_state.validation_history = []
+        
+        # UI State
+        if 'show_projects_menu' not in st.session_state:
+            st.session_state.show_projects_menu = False
+        
+        if 'show_help' not in st.session_state:
+            st.session_state.show_help = False
     
     @staticmethod
     def create_project(name: str, address: str, municipality: str) -> str:
@@ -198,9 +205,12 @@ class SessionManager:
     
     @staticmethod
     def navigate_to(page: str):
-        """Navega a una página"""
+        """
+        Navega a una página SIN RERUN AUTOMÁTICO
+        Solo cambia el estado, el rerun lo hace quien lo llama
+        """
         st.session_state.current_page = page
-        st.rerun()
+        # NO hacer st.rerun() aquí - deja que el caller lo haga
     
     @staticmethod
     def get_current_page() -> str:
