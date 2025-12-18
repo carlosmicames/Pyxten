@@ -15,144 +15,90 @@ from src.database.rules_loader import RulesDatabase
 from src.validators.zoning_validator import ZoningValidator
 from src.ai.claude_interpreter import ClaudeInterpreter
 from src.utils.report_generator import ReportGenerator
+from src.services.session_manager import SessionManager
+from src.ui.components.header import render_header
+from src.ui.components.dashboard import render_dashboard
+from src.ui.pages.pricing import render_pricing_page
 
 # Page config
 st.set_page_config(
-    page_title="Pyxten - Validación de Permisos",
+    page_title="Pyxten - Validación Inteligente de Permisos",
     page_icon="🏗️",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS matching the image
+# Custom CSS
 st.markdown("""
 <style>
-    /* Main background gradient */
+    /* Main background */
     .stApp {
-        background: linear-gradient(135deg, #34d399 0%, #10b981 50%, #14b8a6 100%);
+        background: #f9fafb;
     }
     
     /* Hide default Streamlit elements */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header {visibility: hidden;}
     
-    /* Main container styling */
+    /* Main container */
     .main .block-container {
         padding-top: 2rem;
         padding-bottom: 2rem;
         max-width: 1400px;
     }
     
-    /* Header styling */
-    .pyxten-header {
-        background: rgba(255, 255, 255, 0.95);
-        padding: 1.5rem 2rem;
-        border-radius: 20px;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        backdrop-filter: blur(10px);
-    }
-    
-    .pyxten-logo {
-        font-size: 2.5rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 0.5rem;
-    }
-    
-    .pyxten-tagline {
-        font-size: 1.1rem;
-        color: #6b7280;
-        font-weight: 500;
-    }
-    
-    /* Content container */
-    .content-wrapper {
-        display: flex;
-        gap: 2rem;
-        margin-top: 2rem;
-    }
-    
-    /* Sidebar card */
-    .sidebar-card {
-        background: rgba(255, 255, 255, 0.95);
-        padding: 2rem;
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        backdrop-filter: blur(10px);
-        flex: 0 0 300px;
-    }
-    
-    .sidebar-title {
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: #10b981;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    .phase-item {
-        padding: 0.75rem;
-        margin: 0.5rem 0;
-        background: #f0fdf4;
-        border-left: 4px solid #10b981;
-        border-radius: 8px;
-        font-size: 0.9rem;
-    }
-    
-    .phase-future {
-        background: #f9fafb;
-        border-left-color: #d1d5db;
-        color: #6b7280;
-    }
-    
-    /* Main form card */
-    .form-card {
-        background: rgba(255, 255, 255, 0.95);
-        padding: 2.5rem;
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        backdrop-filter: blur(10px);
-        flex: 1;
-    }
-    
     /* Input field styling */
     .stTextInput > div > div > input,
-    .stSelectbox > div > div > select {
-        border-radius: 12px;
-        border: 2px solid #e5e7eb;
+    .stSelectbox > div > div > select,
+    .stTextArea > div > div > textarea {
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
         padding: 0.75rem 1rem;
-        font-size: 1rem;
-        transition: all 0.3s ease;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+        background: white;
     }
     
     .stTextInput > div > div > input:focus,
-    .stSelectbox > div > div > select:focus {
+    .stSelectbox > div > div > select:focus,
+    .stTextArea > div > div > textarea:focus {
         border-color: #10b981;
         box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        outline: none;
+    }
+    
+    /* Label styling */
+    .stTextInput > label,
+    .stSelectbox > label,
+    .stTextArea > label {
+        font-weight: 500;
+        color: #374151;
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
     }
     
     /* Button styling */
     .stButton > button {
-        background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
+        background: linear-gradient(90deg, #10b981 0%, #14b8a6 100%);
         color: white;
         border: none;
-        border-radius: 12px;
+        border-radius: 10px;
         padding: 0.875rem 2rem;
-        font-size: 1.1rem;
+        font-size: 1rem;
         font-weight: 600;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+        width: 100%;
     }
     
     .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+        background: linear-gradient(90deg, #059669 0%, #0d9488 100%);
+    }
+    
+    .stButton > button:active {
+        transform: translateY(0);
     }
     
     /* Results styling */
@@ -209,35 +155,43 @@ st.markdown("""
     
     /* Expander styling */
     .streamlit-expanderHeader {
-        background: #f9fafb;
-        border-radius: 12px;
-        font-weight: 600;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        font-weight: 500;
+        color: #374151;
+        padding: 0.75rem 1rem;
     }
     
-    /* Footer */
-    .footer {
-        text-align: center;
-        padding: 2rem;
-        margin-top: 3rem;
-        color: white;
-        font-size: 0.9rem;
+    .streamlit-expanderHeader:hover {
+        border-color: #d1d5db;
+        background: #f9fafb;
     }
     
     /* Download button */
     .stDownloadButton > button {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
         color: white;
         border: none;
-        border-radius: 12px;
+        border-radius: 10px;
         padding: 0.875rem 2rem;
         font-size: 1rem;
         font-weight: 600;
-        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+        width: 100%;
     }
     
     .stDownloadButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+        background: linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%);
+    }
+    
+    /* Divider */
+    hr {
+        margin: 2rem 0;
+        border: none;
+        border-top: 1px solid #e5e7eb;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -262,218 +216,234 @@ except Exception as e:
     st.error(f"Error cargando datos: {str(e)}")
     st.stop()
 
-# Header
-st.markdown("""
-<div class="pyxten-header">
-    <div class="pyxten-logo">Py✗ten</div>
-    <div class="pyxten-tagline">Accelerate Your Construction Permits with Intelligent Validation</div>
-</div>
-""", unsafe_allow_html=True)
+# Initialize session
+SessionManager.initialize()
 
-# Main content layout
-col_sidebar, col_main = st.columns([1, 2.5])
+# Render Header (siempre visible)
+render_header()
 
-# Sidebar
-with col_sidebar:
-    st.markdown("""
-    <div class="sidebar-card">
-        <div class="sidebar-title">
-            📋 About Pyxten
-        </div>
-        <div class="phase-item">
-            <strong>Fase 1</strong> valida la compatibilidad de uso y zonificación según Tomo 6 Reglamento Conjunto.
-        </div>
-        <div style="margin-top: 1.5rem; margin-bottom: 0.5rem; font-weight: 600; color: #6b7280;">
-            Próximas fases:
-        </div>
-        <div class="phase-item phase-future">
-            <strong>Fase 2:</strong> Validación completa de PCOC
-        </div>
-        <div class="phase-item phase-future">
-            <strong>Fase 3:</strong> Integración con SBP
-        </div>
-        <div class="phase-item phase-future">
-            <strong>Fase 4:</strong> Municipios
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+# Get current page from session
+current_page = SessionManager.get_current_page()
 
-# Main form
-with col_main:
-    st.markdown('<div class="form-card">', unsafe_allow_html=True)
+# Route to appropriate page
+if current_page == 'pricing':
+    render_pricing_page()
+
+elif current_page == 'dashboard':
+    # Render Dashboard
+    render_dashboard()
     
-    # Property Address
-    property_address = st.text_input(
-        "🏠 Dirección Física",
-        placeholder="123 Calle Principal, San Juan, PR 00901",
-        help="Direccion completa de la propiedad a validar",
-        key="prop_address"
-    )
+    st.markdown("---")
+    st.markdown("## 🔍 Validación de Proyecto (Fase 1)")
     
-    # Two columns for Municipality and Zoning
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        municipality = st.selectbox(
-            "🏛️ Municipio",
-            options=[""] + rules_db.get_municipalities(),
-            help="Selecciona el municipio donde se ubica la propiedad",
-            index=["", "Guaynabo"].index("Guaynabo") if "Guaynabo" in rules_db.get_municipalities() else 0
-        )
-    
-    with col2:
-        # Get zoning districts for dropdown
-        zoning_options = [""] + [
-            f"{d['code']} - {d['name_es']}"
-            for d in rules_db.get_zoning_districts()
-        ]
+    # Fase 1 Validation Form
+    with st.container():
+        st.markdown("""
+        <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        """, unsafe_allow_html=True)
         
-        zoning_selection = st.selectbox(
-            "📍 Distrito de Zonificación",
-            options=zoning_options,
-            help="Selecciona la zonificación aplicable al proyecto",
-            index=zoning_options.index("R-1 - Residencial Baja Densidad") if "R-1 - Residencial Baja Densidad" in zoning_options else 0
-        )
-        
-        zoning_code = zoning_selection.split(" - ")[0] if zoning_selection else ""
-    
-    # Proposed Use
-    use_options = [""] + [
-        f"{u['code']} - {u['name_es']}"
-        for u in rules_db.get_use_types()
-    ]
-    
-    use_selection = st.selectbox(
-        "🏗️ Uso Propuesto",
-        options=use_options,
-        help="Selecciona el uso del proyecto propuesto",
-        index=use_options.index("COM-WAREHOUSE - Almacén") if "COM-WAREHOUSE - Almacén" in use_options else 0
-    )
-    
-    use_code = use_selection.split(" - ")[0] if use_selection else ""
-    
-    # Additional info expander
-    with st.expander("📝 Additional Information (Optional)"):
-        project_description = st.text_area(
-            "Describe brevemente el proyecto",
-            placeholder="E.g., Construcción de un almacén comercial de 5000 pies cuadrados...",
-            help="Provee información adicional que pueda ayudar en la validación",
-        )
-    
-    # Validate button
-    st.markdown("<br>", unsafe_allow_html=True)
-    validate_button = st.button(
-        "🔍 Validar proyecto",
-        use_container_width=True,
-        type="primary"
-    )
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# Validation logic
-if validate_button:
-    # Input validation
-    if not all([property_address, municipality, zoning_code, use_code]):
-        st.error("⚠️ Please complete all required fields")
-    else:
-        with st.spinner("🔄 Validating project against Tomo 6..."):
-            # Create validator
-            validator = ZoningValidator(rules_db)
+        # Check if can validate
+        if not SessionManager.can_validate():
+            st.error("""
+            ❌ **Has alcanzado el límite de validaciones gratuitas**
             
-            # Run validation
-            result = validator.validate_project(
-                property_address=property_address,
-                municipality=municipality,
-                zoning_code=zoning_code,
-                proposed_use_code=use_code
+            Actualiza a Plan Profesional para validaciones ilimitadas.
+            """)
+            
+            if st.button("💳 Ver Planes", key="upgrade_from_form"):
+                SessionManager.navigate_to('pricing')
+        else:
+            # Show remaining validations
+            remaining = SessionManager.get_remaining_validations()
+            if remaining <= 2:
+                st.warning(f"⚠️ Te quedan {remaining} validaciones gratuitas este mes")
+            
+            # Property Address
+            property_address = st.text_input(
+                "🏠 Dirección de la Propiedad",
+                placeholder="Ej: Calle Luna 123, Urb. San Patricio, San Juan",
+                help="Ingresa la dirección completa de la propiedad",
+                key="prop_address"
             )
             
-            # Check for errors
-            if "error" in result:
-                st.error(f"❌ Error: {result['error']}")
-            else:
-                # Store result in session state
-                st.session_state['validation_result'] = result
+            # Two columns
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                municipality = st.selectbox(
+                    "🏛️ Municipio",
+                    options=[""] + rules_db.get_municipalities(),
+                    help="Selecciona el municipio",
+                    index=0
+                )
+            
+            with col2:
+                zoning_options = [""] + [
+                    f"{d['code']} - {d['name_es']}"
+                    for d in rules_db.get_zoning_districts()
+                ]
                 
-                # Display results in main column
-                with col_main:
-                    st.markdown('<div class="form-card">', unsafe_allow_html=True)
-                    
-                    # Viability status
-                    if result["viable"]:
-                        st.markdown(
-                            '<div class="viable-box viable-yes">✓ PROYECTO VIABLE</div>',
-                            unsafe_allow_html=True
+                zoning_selection = st.selectbox(
+                    "📍 Distrito de Zonificación",
+                    options=zoning_options,
+                    help="Selecciona la zonificación",
+                    index=0
+                )
+                
+                zoning_code = zoning_selection.split(" - ")[0] if zoning_selection else ""
+            
+            # Proposed Use
+            use_options = [""] + [
+                f"{u['code']} - {u['name_es']}"
+                for u in rules_db.get_use_types()
+            ]
+            
+            use_selection = st.selectbox(
+                "🏗️ Uso Propuesto",
+                options=use_options,
+                help="Selecciona el uso propuesto",
+                index=0
+            )
+            
+            use_code = use_selection.split(" - ")[0] if use_selection else ""
+            
+            # Additional info
+            with st.expander("📝 Información Adicional (Opcional)"):
+                project_description = st.text_area(
+                    "Descripción del Proyecto",
+                    placeholder="Ej: Construcción de residencia unifamiliar...",
+                    help="Detalles adicionales"
+                )
+            
+            # Validate button
+            st.markdown("<br>", unsafe_allow_html=True)
+            validate_button = st.button(
+                "🔍 Validar Proyecto",
+                use_container_width=True,
+                type="primary"
+            )
+            
+            # Validation logic
+            if validate_button:
+                if not all([property_address, municipality, zoning_code, use_code]):
+                    st.error("⚠️ Por favor completa todos los campos requeridos")
+                else:
+                    with st.spinner("🔄 Validando proyecto contra Tomo 6..."):
+                        validator = ZoningValidator(rules_db)
+                        
+                        result = validator.validate_project(
+                            property_address=property_address,
+                            municipality=municipality,
+                            zoning_code=zoning_code,
+                            proposed_use_code=use_code
                         )
-                    else:
-                        st.markdown(
-                            '<div class="viable-box viable-no">✗ PROYECTO NO VIABLE</div>',
-                            unsafe_allow_html=True
-                        )
-                    
-                    # Summary
-                    st.markdown("### 📝 Resumen")
-                    st.info(result["summary"])
-                    
-                    # Detailed results
-                    st.markdown("### 📊 Validaciones Detalladas")
-                    
-                    for val_result in result["validation_results"]:
-                        if val_result["passed"]:
-                            st.markdown(
-                                f"""
-                                <div class="rule-passed">
-                                    <strong>✓ {val_result['rule_name']}</strong><br>
-                                    {val_result['message']}<br>
-                                    <small><em>{val_result['article']}</em></small>
-                                </div>
-                                """,
-                                unsafe_allow_html=True
-                            )
+                        
+                        if "error" in result:
+                            st.error(f"❌ Error: {result['error']}")
                         else:
-                            st.markdown(
-                                f"""
-                                <div class="rule-failed">
-                                    <strong>✗ {val_result['rule_name']}</strong><br>
-                                    {val_result['message']}<br>
-                                    <small><em>{val_result['article']}</em></small>
-                                </div>
-                                """,
-                                unsafe_allow_html=True
+                            # Add to history
+                            SessionManager.add_validation_to_history(result)
+                            
+                            # Add to current project if exists
+                            current_project = SessionManager.get_current_project()
+                            if current_project:
+                                SessionManager.update_project(
+                                    current_project['id'],
+                                    {
+                                        'phase1_completed': True,
+                                        'phase1_result': result
+                                    }
+                                )
+                            
+                            # Display results
+                            st.markdown("---")
+                            st.markdown("## 📊 Resultados de Validación")
+                            
+                            # Viability
+                            if result["viable"]:
+                                st.markdown(
+                                    '<div class="viable-box viable-yes">✓ PROYECTO VIABLE</div>',
+                                    unsafe_allow_html=True
+                                )
+                            else:
+                                st.markdown(
+                                    '<div class="viable-box viable-no">✗ PROYECTO NO VIABLE</div>',
+                                    unsafe_allow_html=True
+                                )
+                            
+                            # Summary
+                            st.markdown("### 📝 Resumen")
+                            st.info(result["summary"])
+                            
+                            # Detailed results
+                            st.markdown("### 📋 Validaciones Detalladas")
+                            
+                            for val_result in result["validation_results"]:
+                                if val_result["passed"]:
+                                    st.markdown(
+                                        f"""
+                                        <div class="rule-passed">
+                                            <strong>✓ {val_result['rule_name']}</strong><br>
+                                            {val_result['message']}<br>
+                                            <small><em>{val_result['article']}</em></small>
+                                        </div>
+                                        """,
+                                        unsafe_allow_html=True
+                                    )
+                                else:
+                                    st.markdown(
+                                        f"""
+                                        <div class="rule-failed">
+                                            <strong>✗ {val_result['rule_name']}</strong><br>
+                                            {val_result['message']}<br>
+                                            <small><em>{val_result['article']}</em></small>
+                                        </div>
+                                        """,
+                                        unsafe_allow_html=True
+                                    )
+                            
+                            # Next steps
+                            st.markdown("### 📋 Próximos Pasos Recomendados")
+                            for i, step in enumerate(result["next_steps"], 1):
+                                st.markdown(f"{i}. {step}")
+                            
+                            # Download report
+                            st.markdown("---")
+                            st.markdown("### 📥 Descargar Reporte")
+                            
+                            pdf_bytes = ReportGenerator.generate_pdf(result)
+                            st.download_button(
+                                label="📄 Descargar Reporte PDF",
+                                data=pdf_bytes,
+                                file_name=f"pyxten_validacion_{municipality.replace(' ', '_').lower()}.pdf",
+                                mime="application/pdf",
+                                use_container_width=True
                             )
-                    
-                    # Next steps
-                    st.markdown("### 📋 Próximos Pasos Recomendados")
-                    for i, step in enumerate(result["next_steps"], 1):
-                        st.markdown(f"{i}. {step}")
-                    
-                    # Download report
-                    st.markdown("---")
-                    pdf_bytes = ReportGenerator.generate_pdf(result)
-                    st.download_button(
-                        label="📥 Download PDF Report",
-                        data=pdf_bytes,
-                        file_name=f"pyxten_validation_{municipality.replace(' ', '_')}.pdf",
-                        mime="application/pdf",
-                        use_container_width=True
-                    )
-                    
-                    st.markdown('</div>', unsafe_allow_html=True)
+                            
+                            # Add to project if exists
+                            if current_project:
+                                SessionManager.add_report_to_project(
+                                    current_project['id'],
+                                    'fase1',
+                                    pdf_bytes
+                                )
+                                st.success(f"✅ Reporte agregado al proyecto '{current_project['name']}'")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # Footer
+st.markdown("---")
 st.markdown("""
-<div class="footer">
+<div style="text-align: center; padding: 2rem; color: #6b7280;">
     <p style="font-weight: 600; margin-bottom: 0.5rem;">Pyxten LLC © 2025 | Desarrollado en Puerto Rico</p>
-    <p style="font-size: 0.85rem; opacity: 0.9; max-width: 900px; margin: 0 auto;">
-        <em>Este informe ha sido generado por algoritmos basados en la interpretación legal del Reglamento Conjunto 
-        y la Regla de Uso de Terrenos vigente. Este documento constituye una pre-validación algorítmica y un 
-        informe de debida diligencia legal. No es, ni sustituye, la aprobación o permiso oficial de la Junta de 
-        Planificación de Puerto Rico, la Oficina de Gerencia de Permisos (OGPe) o cualquier municipio.</em>
+    <p style="font-size: 0.85rem; max-width: 900px; margin: 0 auto;">
+        <em>Este informe es una pre-validación automatizada. No sustituye aprobaciones oficiales 
+        de OGPe o la Junta de Planificación. Verifica con un Profesional Autorizado antes de someter solicitud formal.</em>
     </p>
-    <div style="margin-top: 1.5rem; display: flex; justify-content: center; gap: 1.5rem;">
-        <a href="#" style="color: white; text-decoration: none;">Contact</a>
-        <a href="#" style="color: white; text-decoration: none;">Terms</a>
-        <a href="#" style="color: white; text-decoration: none;">Privacy</a>
+    <div style="margin-top: 1rem; display: flex; justify-content: center; gap: 1.5rem;">
+        <a href="#" style="color: #10b981; text-decoration: none;">Contacto</a>
+        <a href="#" style="color: #10b981; text-decoration: none;">Términos</a>
+        <a href="#" style="color: #10b981; text-decoration: none;">Privacidad</a>
     </div>
 </div>
 """, unsafe_allow_html=True)
