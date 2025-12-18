@@ -1,121 +1,84 @@
-# Header Component Mejorado - Navigation Bar Moderno
+# Header Component - Menú de navegación superior
 import streamlit as st
 from src.services.session_manager import SessionManager
 
 def render_header():
-    """Renderiza el header con navegación moderna estilo SaaS"""
+    """Renderiza el header con navegación y logo"""
     
     # Inicializar session manager
     SessionManager.initialize()
     
-    # CSS Mejorado con diseño moderno
     st.markdown("""
     <style>
-        /* Reset default Streamlit padding */
-        .main .block-container {
-            padding-top: 0rem;
-            padding-bottom: 0rem;
-            max-width: 100%;
+        /* Header Container */
+        .header-container {
+            background: white;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         
-        /* Header Principal */
-        .pyxten-header {
-            background: linear-gradient(135deg, #ffffff 0%, #f8fffe 100%);
-            border-bottom: 1px solid #e0e0e0;
-            padding: 1rem 3rem;
-            margin: -1rem -1rem 2rem -1rem;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-        
-        /* Logo y Brand */
-        .header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        
-        .brand-container {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        
+        /* Logo */
         .logo {
             font-size: 2rem;
-            font-weight: 900;
+            font-weight: 800;
             background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
-            letter-spacing: -0.5px;
+            display: inline-block;
         }
         
-        .tagline {
-            font-size: 0.85rem;
-            color: #6b7280;
-            font-weight: 500;
-        }
-        
-        /* Navigation Bar */
-        .nav-bar {
+        /* Navigation */
+        .nav-container {
             display: flex;
-            gap: 0.5rem;
+            justify-content: space-between;
             align-items: center;
-            background: #f9fafb;
-            padding: 0.5rem;
-            border-radius: 12px;
-            width: fit-content;
+            margin-top: 1rem;
+        }
+        
+        .nav-left {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        
+        .nav-right {
+            display: flex;
+            gap: 1rem;
         }
         
         .nav-item {
-            padding: 0.625rem 1.25rem;
+            color: #374151;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
             border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            color: #4b5563;
             cursor: pointer;
-            transition: all 0.2s ease;
-            border: none;
-            background: transparent;
-            white-space: nowrap;
+            transition: all 0.2s;
         }
         
         .nav-item:hover {
-            background: #ffffff;
+            background: #f3f4f6;
             color: #10b981;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
         
         .nav-item.active {
-            background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
-            color: white;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            background: #ecfdf5;
+            color: #10b981;
         }
         
         /* Auth Buttons */
-        .auth-container {
-            display: flex;
-            gap: 0.75rem;
-            align-items: center;
-        }
-        
-        .auth-btn {
-            padding: 0.625rem 1.5rem;
+        .auth-button {
+            padding: 0.5rem 1.5rem;
             border-radius: 8px;
             font-weight: 600;
-            font-size: 0.9rem;
             cursor: not-allowed;
-            transition: all 0.2s ease;
             opacity: 0.5;
-            white-space: nowrap;
         }
         
         .btn-login {
-            background: transparent;
+            background: white;
             border: 2px solid #10b981;
             color: #10b981;
         }
@@ -124,297 +87,181 @@ def render_header():
             background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
             border: none;
             color: white;
-            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
         }
         
-        .phase-badge {
-            font-size: 0.7rem;
-            background: #fef3c7;
-            color: #92400e;
-            padding: 0.15rem 0.5rem;
-            border-radius: 12px;
-            font-weight: 700;
-            margin-left: 0.5rem;
-        }
-        
-        /* Dropdown Menu Moderno */
-        .dropdown-menu {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-            padding: 0.5rem;
-            margin-top: 0.5rem;
-            min-width: 280px;
-        }
-        
-        .dropdown-item {
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .dropdown-item:hover {
-            background: #f3f4f6;
-        }
-        
-        .dropdown-icon {
-            font-size: 1.25rem;
-        }
-        
-        /* Project Counter Badge */
-        .counter-badge {
-            background: #10b981;
-            color: white;
-            padding: 0.15rem 0.5rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            margin-left: auto;
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            .pyxten-header {
-                padding: 1rem;
-            }
-            
-            .header-top {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 1rem;
-            }
-            
-            .nav-bar {
-                width: 100%;
-                overflow-x: auto;
-            }
+        /* Dropdown */
+        .dropdown {
+            position: relative;
+            display: inline-block;
         }
     </style>
     """, unsafe_allow_html=True)
     
     # Header HTML
     st.markdown("""
-    <div class="pyxten-header">
-        <div class="header-top">
-            <div class="brand-container">
-                <div class="logo">Py✗ten</div>
-                <div class="tagline">Validación Inteligente de Permisos en Puerto Rico</div>
-            </div>
-            
-            <div class="auth-container">
-                <div class="auth-btn btn-login">
-                    Iniciar Sesión
-                    <span class="phase-badge">FASE 3</span>
-                </div>
-                <div class="auth-btn btn-signup">
-                    Regístrate
-                    <span class="phase-badge">FASE 3</span>
-                </div>
-            </div>
+    <div class="header-container">
+        <div class="logo">Py✗ten</div>
+        <div style="font-size: 0.9rem; color: #6b7280; margin-top: 0.25rem;">
+            Validación Inteligente de Permisos en Puerto Rico
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    # Navigation usando columns para mejor control
-    nav_col1, nav_col2, nav_col3, nav_col4, nav_col5 = st.columns([1, 1, 1, 1, 2])
+    # Navigation Bar
+    col_nav, col_auth = st.columns([3, 1])
     
-    current_page = SessionManager.get_current_page()
+    with col_nav:
+        # Navigation tabs
+        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+            "🏠 Dashboard", 
+            "📁 Proyectos", 
+            "💳 Precios",
+            "⚙️ Configuraciones",
+            "📚 Ayuda"
+        ])
+        
+        with tab1:
+            if SessionManager.get_current_page() != 'dashboard':
+                SessionManager.navigate_to('dashboard')
+        
+        with tab2:
+            render_projects_dropdown()
+        
+        with tab3:
+            if SessionManager.get_current_page() != 'pricing':
+                SessionManager.navigate_to('pricing')
+        
+        with tab4:
+            st.info("⚙️ Configuraciones estará disponible en Phase 3")
+        
+        with tab5:
+            st.info("""
+            📚 **Recursos de Ayuda**
+            
+            - 📖 [Documentación](https://pyxten.com/docs)
+            - 💬 [Soporte](mailto:soporte@pyxten.com)
+            - 📞 Teléfono: (787) 506-0402
+            """)
     
-    with nav_col1:
-        if st.button("🏠 Dashboard", key="nav_dashboard", 
-                    type="primary" if current_page == "dashboard" else "secondary",
-                    use_container_width=True):
-            SessionManager.navigate_to('dashboard')
-    
-    with nav_col2:
-        if st.button("📁 Proyectos", key="nav_projects",
-                    type="primary" if current_page == "projects" else "secondary",
-                    use_container_width=True):
-            # Toggle projects menu
-            if 'show_projects_menu' not in st.session_state:
-                st.session_state.show_projects_menu = False
-            st.session_state.show_projects_menu = not st.session_state.show_projects_menu
-    
-    with nav_col3:
-        if st.button("💳 Precios", key="nav_pricing",
-                    type="primary" if current_page == "pricing" else "secondary",
-                    use_container_width=True):
-            SessionManager.navigate_to('pricing')
-    
-    with nav_col4:
-        if st.button("⚙️ Config", key="nav_settings",
-                    disabled=True,
-                    use_container_width=True):
-            st.toast("⚙️ Configuraciones estará disponible en Phase 3")
-    
-    with nav_col5:
-        if st.button("📚 Ayuda", key="nav_help",
-                    use_container_width=True):
-            st.session_state.show_help = True
-    
-    # Dropdown de Proyectos
-    if st.session_state.get('show_projects_menu', False):
-        render_projects_dropdown()
-    
-    # Modal de Ayuda
-    if st.session_state.get('show_help', False):
-        render_help_modal()
-    
-    st.divider()
+    with col_auth:
+        st.markdown('<div style="text-align: right;">', unsafe_allow_html=True)
+        
+        col_login, col_signup = st.columns(2)
+        
+        with col_login:
+            if st.button("Iniciar Sesión", disabled=True, use_container_width=True):
+                pass
+            st.caption("_Fase 3_")
+        
+        with col_signup:
+            if st.button("Regístrate", disabled=True, type="primary", use_container_width=True):
+                pass
+            st.caption("_Fase 3_")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 def render_projects_dropdown():
-    """Renderiza el menú dropdown de proyectos"""
+    """Renderiza el dropdown de proyectos"""
     
-    with st.expander("📁 Gestión de Proyectos", expanded=True):
-        tab1, tab2, tab3 = st.tabs(["➕ Nuevo", "📂 Activos", "📄 Archivos"])
-        
-        with tab1:
-            render_new_project_form()
-        
-        with tab2:
-            render_active_projects_list()
-        
-        with tab3:
-            render_project_files()
-
-
-def render_new_project_form():
-    """Formulario para crear nuevo proyecto"""
+    st.markdown("### 📁 Gestión de Proyectos")
     
-    st.markdown("### 🆕 Crear Nuevo Proyecto")
+    # Opciones del dropdown
+    option = st.radio(
+        "Selecciona una opción:",
+        ["🆕 Proyecto Nuevo", "📂 Proyectos Activos", "📄 Mis Archivos"],
+        label_visibility="collapsed"
+    )
     
-    with st.form("quick_new_project"):
-        project_name = st.text_input(
-            "Nombre del Proyecto",
-            placeholder="Ej: Residencia Familia García"
-        )
+    if option == "🆕 Proyecto Nuevo":
+        st.markdown("#### Crear Nuevo Proyecto")
         
-        col1, col2 = st.columns(2)
-        with col1:
+        with st.form("new_project_form"):
+            project_name = st.text_input(
+                "Nombre del Proyecto",
+                placeholder="Ej: Residencia Familia García"
+            )
+            
             project_address = st.text_input(
                 "Dirección",
-                placeholder="Calle Luna 123"
+                placeholder="Ej: Calle Luna 123, Urb. San Patricio"
             )
-        
-        with col2:
-            from src.database.rules_loader import RulesDatabase
-            rules_db = RulesDatabase()
+            
             project_municipality = st.selectbox(
                 "Municipio",
-                options=[""] + rules_db.get_municipalities()[:10]  # Top 10 para dropdown
+                ["Seleccionar..."] + ["San Juan", "Guaynabo", "Bayamón", "Carolina"]
             )
+            
+            submitted = st.form_submit_button("✅ Crear Proyecto", type="primary")
+            
+            if submitted:
+                if project_name and project_address and project_municipality != "Seleccionar...":
+                    project_id = SessionManager.create_project(
+                        name=project_name,
+                        address=project_address,
+                        municipality=project_municipality
+                    )
+                    st.success(f"✅ Proyecto '{project_name}' creado exitosamente!")
+                    st.info(f"ID del Proyecto: `{project_id}`")
+                    SessionManager.navigate_to('dashboard')
+                else:
+                    st.error("Por favor completa todos los campos")
+    
+    elif option == "📂 Proyectos Activos":
+        st.markdown("#### Proyectos Activos")
         
-        submitted = st.form_submit_button("✅ Crear Proyecto", use_container_width=True, type="primary")
+        projects = SessionManager.get_active_projects()
         
-        if submitted:
-            if all([project_name, project_address, project_municipality]):
-                project_id = SessionManager.create_project(
-                    name=project_name,
-                    address=project_address,
-                    municipality=project_municipality
-                )
-                st.success(f"✅ Proyecto '{project_name}' creado!")
-                st.session_state.show_projects_menu = False
-                st.rerun()
+        if projects:
+            for project in projects:
+                with st.container():
+                    col1, col2, col3 = st.columns([3, 1, 1])
+                    
+                    with col1:
+                        st.markdown(f"**{project['name']}**")
+                        st.caption(f"{project['address']} | {project['municipality']}")
+                    
+                    with col2:
+                        status_color = "🟢" if project['status'] == "En Progreso" else "🔵"
+                        st.markdown(f"{status_color} {project['status']}")
+                    
+                    with col3:
+                        if st.button("Abrir", key=f"open_{project['id']}", use_container_width=True):
+                            SessionManager.set_current_project(project['id'])
+                            SessionManager.navigate_to('dashboard')
+                    
+                    st.divider()
+        else:
+            st.info("No tienes proyectos activos. Crea uno nuevo para empezar.")
+    
+    elif option == "📄 Mis Archivos":
+        st.markdown("#### Mis Archivos")
+        
+        current_project = SessionManager.get_current_project()
+        
+        if current_project:
+            st.markdown(f"**Proyecto:** {current_project['name']}")
+            
+            # Mostrar documentos
+            if current_project.get('documents'):
+                st.markdown("**📎 Documentos Subidos:**")
+                for doc_type, doc_info in current_project['documents'].items():
+                    st.markdown(f"- {doc_type}: `{doc_info['filename']}`")
             else:
-                st.error("⚠️ Completa todos los campos")
-
-
-def render_active_projects_list():
-    """Lista de proyectos activos"""
-    
-    st.markdown("### 📂 Proyectos Activos")
-    
-    projects = SessionManager.get_active_projects()
-    
-    if projects:
-        for project in projects[:5]:  # Mostrar solo primeros 5
-            col1, col2 = st.columns([3, 1])
+                st.info("No hay documentos en este proyecto aún.")
             
-            with col1:
-                st.markdown(f"**{project['name']}**")
-                st.caption(f"📍 {project['municipality']}")
-            
-            with col2:
-                if st.button("Abrir", key=f"open_{project['id']}", use_container_width=True):
-                    SessionManager.set_current_project(project['id'])
-                    st.session_state.show_projects_menu = False
-                    st.rerun()
-            
-            st.divider()
-        
-        if len(projects) > 5:
-            st.info(f"... y {len(projects) - 5} proyectos más")
-    else:
-        st.info("No hay proyectos activos. ¡Crea uno nuevo!")
-
-
-def render_project_files():
-    """Archivos del proyecto actual"""
-    
-    st.markdown("### 📄 Archivos")
-    
-    current = SessionManager.get_current_project()
-    
-    if current:
-        st.markdown(f"**Proyecto:** {current['name']}")
-        
-        # Documentos
-        if current.get('documents'):
-            st.markdown("**📎 Documentos:**")
-            for doc_type, doc_info in current['documents'].items():
-                st.markdown(f"- ✓ {doc_type}: `{doc_info['filename']}`")
+            # Mostrar reportes
+            if current_project.get('reports'):
+                st.markdown("**📄 Reportes Generados:**")
+                for i, report in enumerate(current_project['reports']):
+                    st.download_button(
+                        label=f"📥 {report['type']} - {report['generated_date'][:10]}",
+                        data=report['data'],
+                        file_name=f"reporte_{report['type']}_{i}.pdf",
+                        mime="application/pdf",
+                        key=f"download_report_{i}"
+                    )
+            else:
+                st.info("No hay reportes generados aún.")
         else:
-            st.info("No hay documentos subidos")
-        
-        # Reportes
-        if current.get('reports'):
-            st.markdown("**📄 Reportes:**")
-            for i, report in enumerate(current['reports']):
-                st.download_button(
-                    label=f"📥 {report['type']} ({report['generated_date'][:10]})",
-                    data=report['data'],
-                    file_name=f"{report['type']}_{i}.pdf",
-                    mime="application/pdf",
-                    key=f"dl_report_{i}"
-                )
-        else:
-            st.info("No hay reportes generados")
-    else:
-        st.warning("Selecciona un proyecto primero")
-
-
-def render_help_modal():
-    """Modal de ayuda"""
-    
-    with st.expander("📚 Centro de Ayuda", expanded=True):
-        st.markdown("""
-        ### ¿Cómo usar Pyxten?
-        
-        **Fase 1 - Validación de Zonificación:**
-        1. 🏠 Ingresa la dirección de tu propiedad
-        2. 📍 Selecciona municipio y zonificación
-        3. 🏗️ Indica el uso propuesto
-        4. 🔍 Presiona "Validar Proyecto"
-        5. 📄 Descarga tu reporte en PDF
-        
-        **Recursos Útiles:**
-        - 📖 [Documentación Completa](https://pyxten.com/docs)
-        - 📹 [Video Tutoriales](https://youtube.com/@pyxten)
-        - 💬 [Chat en Vivo](mailto:soporte@pyxten.com)
-        - 📞 Teléfono: (787) 506-0402
-        
-        **Próximamente en Fase 2:**
-        - ✓ Validación completa de PCOC
-        - ✓ Análisis de documentos con IA
-        - ✓ Memorial Explicativo automático
-        """)
-        
-        if st.button("Cerrar Ayuda", use_container_width=True):
-            st.session_state.show_help = False
-            st.rerun()
+            st.warning("Selecciona o crea un proyecto primero.")
