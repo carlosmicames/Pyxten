@@ -44,11 +44,6 @@ def render_homepage(rules_db, claude_ai=None, model_router=None):
         else:
             render_pcoc_quick_access(model_router)
         
-        if user_plan == 'free':
-            render_pcoc_upgrade_cta()
-        else:
-            render_pcoc_quick_access(model_router)
-
 def render_phase1_form(rules_db):
     """
     Contiene la lógica del formulario de validación Fase 1.
