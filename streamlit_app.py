@@ -25,33 +25,15 @@ from src.ui.pages.pricing import render_pricing_page
 from src.ui.pages.new_project import render_new_project_page
 from src.ui.pages.active_projects import render_active_projects_page
 
-from src.ai.model_router import ModelRouter
-from src.validators.pcoc_validator import PCOCValidator
-
-# AGREGAR después de load_database() y load_ai():
-
-@st.cache_resource
-def load_model_router():
-    """Carga ModelRouter para Fase 2"""
-    try:
-        return ModelRouter()
-    except ValueError as e:
-        st.warning(f"ModelRouter no disponible: {str(e)}")
-        return None
-
-# EN LA FUNCIÓN MAIN, AGREGAR:
-
-# Cargar model router
-model_router = load_model_router()
-
-# ACTUALIZAR EL ROUTING:
-
-elif current_page == 'pcoc_validation':
-    # NUEVO - Fase 2
-    if model_router:
-        render_pcoc_validator(rules_db, model_router)
-    else:
-        st.error("Model Router no disponible. Verifica API keys en .env")
+# Import Fase 2 components
+try:
+    from src.ai.model_router import ModelRouter
+    from src.validators.pcoc_validator import PCOCValidator
+    from src.ui.pages.pcoc_validation import render_pcoc_validator
+    FASE2_AVAILABLE = True
+except ImportError as e:
+    st.warning(f"Fase 2 features not available: {e}")
+    FASE2_AVAILABLE = False
 
 # Page config
 st.set_page_config(
@@ -263,10 +245,22 @@ def load_ai():
     except ValueError:
         return None
 
+@st.cache_resource
+def load_model_router():
+    """Carga ModelRouter para Fase 2"""
+    if not FASE2_AVAILABLE:
+        return None
+    try:
+        return ModelRouter()
+    except ValueError as e:
+        st.warning(f"ModelRouter no disponible: {str(e)}")
+        return None
+
 # Load data
 try:
     rules_db = load_database()
     claude_ai = load_ai()
+    model_router = load_model_router() if FASE2_AVAILABLE else None
 except Exception as e:
     st.error(f"Error cargando datos: {str(e)}")
     st.stop()
@@ -301,6 +295,14 @@ try:
     
     elif current_page == 'pricing':
         render_pricing_page()
+    
+    elif current_page == 'pcoc_validation':
+        # FASE 2 - PCOC Validation
+        if FASE2_AVAILABLE and model_router:
+            render_pcoc_validator(rules_db, model_router)
+        else:
+            st.error("PCOC Validation no disponible. Verifica que OPENAI_API_KEY esté en .env")
+            st.info("Fase 2 requiere OpenAI API key para análisis de documentos con IA")
     
     else:
         # Fallback to homepage
