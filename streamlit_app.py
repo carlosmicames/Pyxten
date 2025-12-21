@@ -1,4 +1,14 @@
 import streamlit as st
+
+# ⚠️ CRITICAL: set_page_config MUST be the first Streamlit command
+st.set_page_config(
+    page_title="Pyxten - Validación Inteligente de Permisos",
+    page_icon="🏗️",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# NOW we can do other imports
 import os
 import sys
 from pathlib import Path
@@ -6,9 +16,25 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-# Load environment variables
+# Load environment variables - IMPROVED ERROR HANDLING
 from dotenv import load_dotenv
-load_dotenv()
+
+# Try to load .env from multiple locations
+env_loaded = False
+env_paths = [
+    Path(__file__).parent / ".env",
+    Path.cwd() / ".env",
+    Path.home() / ".env"
+]
+
+for env_path in env_paths:
+    if env_path.exists():
+        load_dotenv(env_path)
+        env_loaded = True
+        break
+
+if not env_loaded:
+    st.warning("⚠️ Archivo .env no encontrado. Asegúrate de tenerlo en la raíz del proyecto.")
 
 # Import modules
 from src.database.rules_loader import RulesDatabase
@@ -25,23 +51,28 @@ from src.ui.pages.pricing import render_pricing_page
 from src.ui.pages.new_project import render_new_project_page
 from src.ui.pages.active_projects import render_active_projects_page
 
-# Import Fase 2 components
-try:
-    from src.ai.model_router import ModelRouter
-    from src.validators.pcoc_validator import PCOCValidator
-    from src.ui.pages.pcoc_validation import render_pcoc_validator
-    FASE2_AVAILABLE = True
-except ImportError as e:
-    st.warning(f"Fase 2 features not available: {e}")
-    FASE2_AVAILABLE = False
+# Import Fase 2 components with better error handling
+FASE2_AVAILABLE = False
+model_router = None
 
-# Page config
-st.set_page_config(
-    page_title="Pyxten - Validación Inteligente de Permisos",
-    page_icon="🏗️",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+try:
+    # Check for required API keys
+    openai_key = os.getenv("OPENAI_API_KEY")
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+    
+    if not openai_key:
+        st.sidebar.warning("⚠️ OPENAI_API_KEY no encontrada - Fase 2 (PCOC) no disponible")
+    elif not anthropic_key:
+        st.sidebar.warning("⚠️ ANTHROPIC_API_KEY no encontrada - Algunas funciones limitadas")
+    else:
+        from src.ai.model_router import ModelRouter
+        from src.validators.pcoc_validator import PCOCValidator
+        FASE2_AVAILABLE = True
+        
+except ImportError as e:
+    st.sidebar.warning(f"Fase 2 módulos no disponibles: {e}")
+except Exception as e:
+    st.sidebar.error(f"Error cargando Fase 2: {e}")
 
 # Custom CSS
 st.markdown("""
@@ -166,6 +197,14 @@ st.markdown("""
         background: linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%);
     }
     
+    /* Radio buttons */
+    .stRadio > div {
+        background: white;
+        padding: 1rem;
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
+    }
+    
     /* Animations */
     @keyframes slideIn {
         from {
@@ -233,6 +272,28 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# DEBUG: Check what keys are loaded (NOW it's safe to use st.sidebar)
+if st.sidebar.checkbox("🔍 Debug: Mostrar Variables de Entorno", value=False):
+    st.sidebar.markdown("### Variables Cargadas:")
+    env_vars = {
+        "ANTHROPIC_API_KEY": "✅" if os.getenv("ANTHROPIC_API_KEY") else "❌",
+        "OPENAI_API_KEY": "✅" if os.getenv("OPENAI_API_KEY") else "❌",
+        "GOOGLE_MAPS_API_KEY": "✅" if os.getenv("GOOGLE_MAPS_API_KEY") else "❌"
+    }
+    for key, status in env_vars.items():
+        st.sidebar.markdown(f"**{key}:** {status}")
+    
+    if not all(v == "✅" for v in env_vars.values()):
+        st.sidebar.error("Faltan algunas API keys. Verifica tu archivo .env")
+        st.sidebar.code("""
+# Formato correcto en .env:
+ANTHROPIC_API_KEY=sk-ant-xxxxx
+OPENAI_API_KEY=sk-xxxxx
+GOOGLE_MAPS_API_KEY=xxxxx
+
+# Sin espacios, sin comillas
+        """)
+
 # Initialize
 @st.cache_resource
 def load_database():
@@ -242,18 +303,37 @@ def load_database():
 def load_ai():
     try:
         return ClaudeInterpreter()
-    except ValueError:
+    except ValueError as e:
+        st.sidebar.warning(f"Claude AI no disponible: {e}")
         return None
 
 @st.cache_resource
 def load_model_router():
-    """Carga ModelRouter para Fase 2"""
+    """Carga ModelRouter para Fase 2 con mejor manejo de errores"""
     if not FASE2_AVAILABLE:
         return None
+    
     try:
-        return ModelRouter()
+        # Double-check API keys before initializing
+        if not os.getenv("OPENAI_API_KEY"):
+            st.sidebar.error("❌ OPENAI_API_KEY requerida para Fase 2")
+            return None
+        
+        if not os.getenv("ANTHROPIC_API_KEY"):
+            st.sidebar.error("❌ ANTHROPIC_API_KEY requerida para Fase 2")
+            return None
+        
+        from src.ai.model_router import ModelRouter
+        router = ModelRouter()
+        st.sidebar.success("✅ Fase 2 (PCOC) disponible")
+        return router
+        
     except ValueError as e:
-        st.warning(f"ModelRouter no disponible: {str(e)}")
+        st.sidebar.error(f"Error configurando ModelRouter: {e}")
+        st.sidebar.info("Verifica que ambas API keys estén correctamente configuradas en .env")
+        return None
+    except Exception as e:
+        st.sidebar.error(f"Error inesperado: {e}")
         return None
 
 # Load data
@@ -282,7 +362,7 @@ if not current_page or current_page == 'homepage':
 # Route to appropriate page
 try:
     if current_page == 'homepage':
-        render_homepage(rules_db, claude_ai)
+        render_homepage(rules_db, claude_ai, model_router)
     
     elif current_page == 'dashboard':
         render_dashboard()
@@ -297,12 +377,33 @@ try:
         render_pricing_page()
     
     elif current_page == 'pcoc_validation':
-        # FASE 2 - PCOC Validation
-        if FASE2_AVAILABLE and model_router:
-            render_pcoc_validator(rules_db, model_router)
+        # FASE 2 - PCOC Validation with enhanced error handling
+        if not FASE2_AVAILABLE:
+            st.error("### Fase 2 (PCOC Validation) No Disponible")
+            st.warning("""
+            Para habilitar la validación PCOC completa, necesitas:
+            
+            1. **OPENAI_API_KEY** - Para análisis de planos con GPT-4o Mini
+            2. **ANTHROPIC_API_KEY** - Para análisis de documentos con Claude
+            
+            Verifica que tu archivo `.env` contenga ambas keys:
+            """)
+            st.code("""
+ANTHROPIC_API_KEY=sk-ant-xxxxx
+OPENAI_API_KEY=sk-xxxxx
+GOOGLE_MAPS_API_KEY=xxxxx
+            """)
+            
+            st.info("💡 Una vez agregues las keys, reinicia la aplicación")
+            
+        elif not model_router:
+            st.error("### Error Inicializando ModelRouter")
+            st.warning("Las API keys están configuradas pero hay un problema al inicializar el sistema de IA.")
+            st.info("Revisa el sidebar para más detalles del error")
         else:
-            st.error("PCOC Validation no disponible. Verifica que OPENAI_API_KEY esté en .env")
-            st.info("Fase 2 requiere OpenAI API key para análisis de documentos con IA")
+            # Import the enhanced PCOC validator with questionnaire
+            from src.ui.pages.pcoc_validation import render_pcoc_validator
+            render_pcoc_validator(rules_db, model_router)
     
     else:
         # Fallback to homepage
