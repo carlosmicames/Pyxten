@@ -4,3 +4,6 @@ httpx<0.28
 python-dotenv==1.0.0
 pydantic==2.10.6
 fpdf2==2.7.6
+echo "openai>1.0.0" >> requirements.txt
+googlemaps>=4.10.0
+requests>=2.31.0

@@ -25,6 +25,34 @@ from src.ui.pages.pricing import render_pricing_page
 from src.ui.pages.new_project import render_new_project_page
 from src.ui.pages.active_projects import render_active_projects_page
 
+from src.ai.model_router import ModelRouter
+from src.validators.pcoc_validator import PCOCValidator
+
+# AGREGAR después de load_database() y load_ai():
+
+@st.cache_resource
+def load_model_router():
+    """Carga ModelRouter para Fase 2"""
+    try:
+        return ModelRouter()
+    except ValueError as e:
+        st.warning(f"ModelRouter no disponible: {str(e)}")
+        return None
+
+# EN LA FUNCIÓN MAIN, AGREGAR:
+
+# Cargar model router
+model_router = load_model_router()
+
+# ACTUALIZAR EL ROUTING:
+
+elif current_page == 'pcoc_validation':
+    # NUEVO - Fase 2
+    if model_router:
+        render_pcoc_validator(rules_db, model_router)
+    else:
+        st.error("Model Router no disponible. Verifica API keys en .env")
+
 # Page config
 st.set_page_config(
     page_title="Pyxten - Validación Inteligente de Permisos",
