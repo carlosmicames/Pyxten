@@ -1,21 +1,17 @@
-# Homepage - Validación Fase 1 con CTA prominente
 import streamlit as st
 from src.database.rules_loader import RulesDatabase
 from src.validators.zoning_validator import ZoningValidator
 from src.utils.report_generator import ReportGenerator
 from src.services.session_manager import SessionManager
 
-def render_homepage(rules_db, claude_ai=None):
-    """Renderiza la página principal con validación Fase 1"""
-    
+def render_homepage(rules_db, claude_ai=None, model_router=None):
+    """
+    Renderiza la página principal.
+    Esta es la función principal que organiza los Tabs (Fase 1 vs Fase 2).
+    """
     SessionManager.initialize()
     
-    def render_homepage_with_phase2(rules_db, claude_ai, model_router=None):
-    """Homepage con tabs Fase 1 y Fase 2"""
-    
-    SessionManager.initialize()
-    
-    # Hero Section
+    # --- HERO SECTION (Header Principal) ---
     st.markdown("""
     <div style="text-align: center; padding: 2rem 0 2rem 0;">
         <h1 style="font-size: 2.5rem; font-weight: 800; color: #111827; margin-bottom: 0.5rem;">
@@ -27,18 +23,19 @@ def render_homepage(rules_db, claude_ai=None):
     </div>
     """, unsafe_allow_html=True)
     
-    # Tabs: Fase 1 y Fase 2
+    # --- TABS ---
     tab1, tab2 = st.tabs([
         "Validación Rápida (Zonificación)",
         "Validación PCOC Completa"
     ])
     
+    # TAB 1: Validación Fase 1 (Formulario)
     with tab1:
-        # Código existente de Fase 1
-        render_homepage(rules_db, claude_ai)
+        # Llamamos a la función interna que contiene el formulario
+        render_phase1_form(rules_db)
     
+    # TAB 2: Validación Fase 2 (PCOC / Upsell)
     with tab2:
-        # NUEVO - Fase 2
         user_plan = st.session_state.get('user_plan', 'free')
         
         if user_plan == 'free':
@@ -46,97 +43,11 @@ def render_homepage(rules_db, claude_ai=None):
         else:
             render_pcoc_quick_access(model_router)
 
-
-def render_pcoc_upgrade_cta():
-    """CTA para usuarios free"""
-    
-    st.markdown("""
-    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                padding: 3rem; border-radius: 20px; text-align: center;
-                color: white; margin: 2rem 0;">
-        <h2>Validación PCOC - Feature Premium</h2>
-        <p style="font-size: 1.2rem; margin: 1.5rem 0;">
-            Pre-valida tu permiso de construcción completo antes de someter
-        </p>
-        
-        <div style="background: rgba(255,255,255,0.15); padding: 1.5rem; 
-                    border-radius: 12px; margin: 1.5rem 0; text-align: left;">
-            <h3 style="color: white;">✨ Incluye:</h3>
-            <ul style="font-size: 1.1rem; line-height: 2;">
-                <li>Análisis automático de planos con IA</li>
-                <li>Validación de certificaciones y documentos</li>
-                <li>Checklist completo de cumplimiento</li>
-                <li>Detección de errores antes de someter</li>
-                <li>Reportes PDF profesionales</li>
-                <li>10 validaciones PCOC/mes</li>
-            </ul>
-        </div>
-        
-        <p style="font-size: 1.3rem; font-weight: 600; margin: 1.5rem 0;">
-            Solo $99/mes - Ahorra tiempo y rechazos
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("Ver Planes y Actualizar", type="primary", use_container_width=True):
-            st.session_state.current_page = 'pricing'
-            st.rerun()
-
-def render_pcoc_quick_access(model_router):
-    """Acceso rápido a PCOC para usuarios premium"""
-    
-    st.markdown("### 🏗️ Validación PCOC - Pre-verifica antes de someter")
-    
-    # Stats
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        used = st.session_state.get('pcoc_validations_used', 0)
-        limit = 10  # Plan profesional
-        remaining = max(0, limit - used)
-        st.metric("Validaciones Restantes", f"{remaining}/{limit}")
-    
-    with col2:
-        st.metric("Tiempo Promedio", "~12 min")
-    
-    with col3:
-        st.metric("Tasa Éxito", "87%")
-    
-    st.divider()
-    
-    # CTA principal
-    if st.button(
-        "➕ Nueva Validación PCOC",
-        type="primary",
-        use_container_width=True
-    ):
-        st.session_state.current_page = 'pcoc_validation'
-        st.rerun()
-    
-    # Info adicional
-    st.info("""
-    **¿Qué validamos?**
-    - ✅ Planos arquitectónicos (planta, elevaciones, conjunto)
-    - ✅ Certificaciones (registral, AAA, ambiental)
-    - ✅ Formularios OGPe
-    - ✅ Coherencia entre documentos
-    - ✅ Cumplimiento con Reglamento Conjunto Sección 2.1.9
-    """)
-
-    # Hero Section
-    st.markdown("""
-    <div style="text-align: center; padding: 2rem 0 3rem 0;">
-        <h1 style="font-size: 2.5rem; font-weight: 800; color: #111827; margin-bottom: 0.5rem;">
-            Valida tu Proyecto en Minutos
-        </h1>
-        <p style="font-size: 1.2rem; color: #6b7280; max-width: 700px; margin: 0 auto;">
-            Verifica si tu proyecto cumple con el Reglamento Conjunto Tomo 6 
-            antes de someter tu solicitud oficial
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+def render_phase1_form(rules_db):
+    """
+    Contiene la lógica del formulario de validación Fase 1.
+    Separado de la función principal para evitar bucles infinitos.
+    """
     
     # Check if can validate
     if not SessionManager.can_validate():
@@ -156,12 +67,12 @@ def render_pcoc_quick_access(model_router):
                 st.session_state.current_page = 'pricing'
                 st.rerun()
         return
-    
+
     # Show remaining validations warning if low
     remaining = SessionManager.get_remaining_validations()
     if remaining <= 2:
         st.warning(f"Te quedan {remaining} validaciones gratuitas este mes")
-    
+
     # Main validation form in a clean card
     st.markdown("""
     <div style="background: white; padding: 2.5rem; border-radius: 16px; 
@@ -274,6 +185,83 @@ def render_pcoc_quick_access(model_router):
                     # Show results
                     render_validation_results(result, property_address, municipality)
 
+def render_pcoc_upgrade_cta():
+    """CTA para usuarios free"""
+    
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 3rem; border-radius: 20px; text-align: center;
+                color: white; margin: 2rem 0;">
+        <h2>Validación PCOC - Feature Premium</h2>
+        <p style="font-size: 1.2rem; margin: 1.5rem 0;">
+            Pre-valida tu permiso de construcción completo antes de someter
+        </p>
+        
+        <div style="background: rgba(255,255,255,0.15); padding: 1.5rem; 
+                    border-radius: 12px; margin: 1.5rem 0; text-align: left;">
+            <h3 style="color: white;">✨ Incluye:</h3>
+            <ul style="font-size: 1.1rem; line-height: 2;">
+                <li>Análisis automático de planos con IA</li>
+                <li>Validación de certificaciones y documentos</li>
+                <li>Checklist completo de cumplimiento</li>
+                <li>Detección de errores antes de someter</li>
+                <li>Reportes PDF profesionales</li>
+                <li>10 validaciones PCOC/mes</li>
+            </ul>
+        </div>
+        
+        <p style="font-size: 1.3rem; font-weight: 600; margin: 1.5rem 0;">
+            Solo $99/mes - Ahorra tiempo y rechazos
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("Ver Planes y Actualizar", type="primary", use_container_width=True):
+            st.session_state.current_page = 'pricing'
+            st.rerun()
+
+def render_pcoc_quick_access(model_router):
+    """Acceso rápido a PCOC para usuarios premium"""
+    
+    st.markdown("### 🏗️ Validación PCOC - Pre-verifica antes de someter")
+    
+    # Stats
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        used = st.session_state.get('pcoc_validations_used', 0)
+        limit = 10  # Plan profesional
+        remaining = max(0, limit - used)
+        st.metric("Validaciones Restantes", f"{remaining}/{limit}")
+    
+    with col2:
+        st.metric("Tiempo Promedio", "~12 min")
+    
+    with col3:
+        st.metric("Tasa Éxito", "87%")
+    
+    st.divider()
+    
+    # CTA principal
+    if st.button(
+        "➕ Nueva Validación PCOC",
+        type="primary",
+        use_container_width=True
+    ):
+        st.session_state.current_page = 'pcoc_validation'
+        st.rerun()
+    
+    # Info adicional
+    st.info("""
+    **¿Qué validamos?**
+    - ✅ Planos arquitectónicos (planta, elevaciones, conjunto)
+    - ✅ Certificaciones (registral, AAA, ambiental)
+    - ✅ Formularios OGPe
+    - ✅ Coherencia entre documentos
+    - ✅ Cumplimiento con Reglamento Conjunto Sección 2.1.9
+    """)
 
 def render_validation_results(result, property_address, municipality):
     """Renderiza los resultados de validación con CTA prominente"""
@@ -281,12 +269,8 @@ def render_validation_results(result, property_address, municipality):
     st.markdown("""
     <div style="background: #f9fafb; padding: 2rem; border-radius: 16px;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); margin-top: 2rem;">
-    <div style="font-size: 1.5rem; font-weight: 600; color: #111827; text-align: center; margin-bottom: 1rem;">
-        Realizar Validacion Completa
-    </div>
-    ...
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
+    
     st.markdown("## Resultados de Validación")
     
     # Big viability result
@@ -465,3 +449,4 @@ def render_validation_results(result, property_address, municipality):
                 if st.button("Crear Proyecto", key="create_proj_cta"):
                     st.session_state.current_page = 'new_project'
                     st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
