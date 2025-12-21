@@ -36,7 +36,13 @@ def render_homepage(rules_db, claude_ai=None, model_router=None):
     
     # TAB 2: Validación Fase 2 (PCOC / Upsell)
     with tab2:
-        user_plan = st.session_state.get('user_plan', 'free')
+        # Default to professional for testing - remove paywall
+        user_plan = st.session_state.get('user_plan', 'professional')
+        
+        if user_plan == 'free':
+            render_pcoc_upgrade_cta()
+        else:
+            render_pcoc_quick_access(model_router)
         
         if user_plan == 'free':
             render_pcoc_upgrade_cta()

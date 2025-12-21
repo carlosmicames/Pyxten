@@ -1,4 +1,4 @@
-# Session Manager - CORREGIDO para evitar recursión
+# Session Manager - With professional plan default for testing
 import streamlit as st
 from datetime import datetime
 from typing import Dict, Optional, List
@@ -30,13 +30,17 @@ class SessionManager:
         if 'validation_limit' not in st.session_state:
             st.session_state.validation_limit = 5
         
-        # Navegación - IMPORTANTE: default es 'dashboard'
+        # Navegación - IMPORTANTE: default es 'homepage'
         if 'current_page' not in st.session_state:
             st.session_state.current_page = 'homepage'
         
         # Historial de validaciones (últimas 10)
         if 'validation_history' not in st.session_state:
             st.session_state.validation_history = []
+        
+        # User plan - DEFAULT TO PROFESSIONAL FOR TESTING
+        if 'user_plan' not in st.session_state:
+            st.session_state.user_plan = 'professional'
         
         # UI State
         if 'show_projects_menu' not in st.session_state:

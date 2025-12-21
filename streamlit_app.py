@@ -272,27 +272,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# DEBUG: Check what keys are loaded (NOW it's safe to use st.sidebar)
-if st.sidebar.checkbox("🔍 Debug: Mostrar Variables de Entorno", value=False):
-    st.sidebar.markdown("### Variables Cargadas:")
-    env_vars = {
-        "ANTHROPIC_API_KEY": "✅" if os.getenv("ANTHROPIC_API_KEY") else "❌",
-        "OPENAI_API_KEY": "✅" if os.getenv("OPENAI_API_KEY") else "❌",
-        "GOOGLE_MAPS_API_KEY": "✅" if os.getenv("GOOGLE_MAPS_API_KEY") else "❌"
-    }
-    for key, status in env_vars.items():
-        st.sidebar.markdown(f"**{key}:** {status}")
-    
-    if not all(v == "✅" for v in env_vars.values()):
-        st.sidebar.error("Faltan algunas API keys. Verifica tu archivo .env")
-        st.sidebar.code("""
-# Formato correcto en .env:
-ANTHROPIC_API_KEY=sk-ant-xxxxx
-OPENAI_API_KEY=sk-xxxxx
-GOOGLE_MAPS_API_KEY=xxxxx
-
-# Sin espacios, sin comillas
-        """)
+# Removed debug checkbox - API keys are now validated automatically
 
 # Initialize
 @st.cache_resource

@@ -18,15 +18,7 @@ def render_pcoc_validator(rules_db, model_router):
     
     st.markdown("## Validación PCOC - Permiso de Construcción Completo")
     
-    # Verificar acceso
-    user_plan = st.session_state.get('user_plan', 'professional')
-    
-    if user_plan == 'free':
-        st.error("Esta función requiere Plan Profesional o superior")
-        if st.button("Ver Planes"):
-            st.session_state.current_page = 'pricing'
-            st.rerun()
-        return
+    # Removed paywall check for testing - defaulting to professional access
     
     # Inicializar wizard con paso del cuestionario
     if 'pcoc_step' not in st.session_state:
