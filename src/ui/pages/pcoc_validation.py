@@ -1,18 +1,23 @@
 """
-Página de validación PCOC completa con validación de direcciones
+Enhanced PCOC Validation Page with:
+- Interactive Section 2.1.9 questionnaire
+- Confidence scores display
+- Document re-upload functionality
 """
 
 import streamlit as st
 from src.services.session_manager import SessionManager
 from src.validators.pcoc_validator import PCOCValidator
 from src.utils.address_validator import AddressValidator
+from section_questionnaire import Section219Questionnaire
+from src.ui.components.section_questionnaire import Section219Questionnaire
 
 def render_pcoc_validator(rules_db, model_router):
-    """Wizard de validación PCOC"""
+    """Enhanced PCOC validation wizard"""
     
     SessionManager.initialize()
     
-    st.markdown("## Validación PCOC - Permiso de Construcción")
+    st.markdown("## Validación PCOC - Permiso de Construcción Completo")
     
     # Verificar acceso
     user_plan = st.session_state.get('user_plan', 'professional')
@@ -24,9 +29,9 @@ def render_pcoc_validator(rules_db, model_router):
             st.rerun()
         return
     
-    # Inicializar wizard
+    # Inicializar wizard con paso del cuestionario
     if 'pcoc_step' not in st.session_state:
-        st.session_state.pcoc_step = 0
+        st.session_state.pcoc_step = 0  # Starts at questionnaire
     
     if 'pcoc_project_data' not in st.session_state:
         st.session_state.pcoc_project_data = {}
@@ -34,8 +39,8 @@ def render_pcoc_validator(rules_db, model_router):
     if 'pcoc_uploaded_docs' not in st.session_state:
         st.session_state.pcoc_uploaded_docs = {}
     
-    # Progress bar
-    steps = ["Proyecto", "Documentos", "Planos", "Resultados"]
+    # Progress bar - NOW 5 STEPS
+    steps = ["Cuestionario 2.1.9", "Proyecto", "Documentos", "Planos", "Resultados"]
     progress = (st.session_state.pcoc_step + 1) / len(steps)
     st.progress(progress, text=f"Paso {st.session_state.pcoc_step + 1} de {len(steps)}")
     
@@ -54,13 +59,35 @@ def render_pcoc_validator(rules_db, model_router):
     
     # Renderizar paso actual
     if st.session_state.pcoc_step == 0:
-        render_project_info_step(rules_db)
+        render_questionnaire_step()
     elif st.session_state.pcoc_step == 1:
-        render_documents_step()
+        render_project_info_step(rules_db)
     elif st.session_state.pcoc_step == 2:
-        render_planos_step(model_router)
+        render_documents_step()
     elif st.session_state.pcoc_step == 3:
-        render_results_step(rules_db, model_router)
+        render_planos_step(model_router)
+    elif st.session_state.pcoc_step == 4:
+        render_results_step_enhanced(rules_db, model_router)
+
+
+def render_questionnaire_step():
+    """Step 0: Interactive Section 2.1.9 questionnaire"""
+    
+    questionnaire = Section219Questionnaire()
+    
+    # Render the questionnaire
+    is_complete = questionnaire.render()
+    
+    # Navigation
+    st.markdown("---")
+    
+    if is_complete:
+        col1, col2, col3 = st.columns([1, 1, 1])
+        
+        with col3:
+            if st.button("Continuar a Información del Proyecto →", type="primary", use_container_width=True):
+                st.session_state.pcoc_step = 1
+                st.rerun()
 
 
 def render_project_info_step(rules_db):
@@ -171,16 +198,22 @@ def render_project_info_step(rules_db):
                 if st.session_state.get('pcoc_address_validated'):
                     st.session_state.pcoc_project_data['address_data'] = st.session_state.pcoc_address_data
                 
-                st.session_state.pcoc_step = 1
+                st.session_state.pcoc_step = 2
                 st.rerun()
             else:
                 st.error("Completa todos los campos marcados con *")
+    
+    # Back button
+    st.markdown("---")
+    if st.button("⬅️ Volver al Cuestionario", key="back_to_questionnaire"):
+        st.session_state.pcoc_step = 0
+        st.rerun()
 
 
 def render_documents_step():
     """Paso 2: Upload de documentos"""
     
-    st.markdown("### Documentos Requeridos")
+    st.markdown("### 📄 Documentos Requeridos")
     st.info("Sube los documentos básicos. En el próximo paso subirás los planos.")
     
     doc_types = {
@@ -192,39 +225,45 @@ def render_documents_step():
     uploaded_any = False
     
     for key, name in doc_types.items():
-        uploaded = st.file_uploader(
-            name,
-            type=['pdf', 'jpg', 'png'],
-            key=f"doc_{key}"
-        )
+        col1, col2 = st.columns([3, 1])
         
-        if uploaded:
-            st.session_state.pcoc_uploaded_docs[key] = uploaded.read()
-            st.success(f"✅ {uploaded.name} cargado")
-            uploaded_any = True
+        with col1:
+            uploaded = st.file_uploader(
+                name,
+                type=['pdf', 'jpg', 'png'],
+                key=f"doc_{key}"
+            )
+            
+            if uploaded:
+                st.session_state.pcoc_uploaded_docs[key] = uploaded.read()
+                uploaded_any = True
+        
+        with col2:
+            if key in st.session_state.pcoc_uploaded_docs:
+                st.success("✅ Cargado")
     
     st.divider()
     
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
-        if st.button("⬅Anterior", use_container_width=True):
-            st.session_state.pcoc_step = 0
+        if st.button("⬅️ Anterior", use_container_width=True):
+            st.session_state.pcoc_step = 1
             st.rerun()
     
     with col3:
         if uploaded_any:
             if st.button("Siguiente →", type="primary", use_container_width=True):
-                st.session_state.pcoc_step = 2
+                st.session_state.pcoc_step = 3
                 st.rerun()
         else:
             st.button("Sube al menos un documento", disabled=True, use_container_width=True)
 
 
 def render_planos_step(model_router):
-    """Paso 3: Upload y análisis de planos"""
+    """Paso 3: Upload y análisis de planos CON CONFIDENCE SCORES"""
     
-    st.markdown("### Planos de Construcción")
+    st.markdown("### 📐 Planos de Construcción")
     st.info("La IA analizará automáticamente cada plano que subas")
     
     plano_types = {
@@ -239,19 +278,29 @@ def render_planos_step(model_router):
     for key, name in plano_types.items():
         st.markdown(f"#### {name}")
         
-        col1, col2 = st.columns([3, 1])
+        col1, col2, col3 = st.columns([2, 1, 1])
         
         with col1:
+            # Re-upload functionality
+            if key in st.session_state.planos_analyzed:
+                if st.button(f"🔄 Re-subir {name}", key=f"reupload_{key}"):
+                    # Clear previous analysis
+                    del st.session_state.planos_analyzed[key]
+                    if key in st.session_state.pcoc_uploaded_docs:
+                        del st.session_state.pcoc_uploaded_docs[key]
+                    st.rerun()
+            
             uploaded = st.file_uploader(
                 "Selecciona archivo",
                 type=['pdf', 'jpg', 'png'],
                 key=f"plano_{key}",
                 label_visibility="collapsed"
             )
-            
+        
+        with col2:
             if uploaded and key not in st.session_state.planos_analyzed:
-                if st.button(f"Analizar {name}", key=f"analyze_{key}"):
-                    with st.spinner(f"Analizando {name} con IA..."):
+                if st.button(f"Analizar", key=f"analyze_{key}"):
+                    with st.spinner(f"Analizando con IA..."):
                         file_bytes = uploaded.read()
                         
                         # Obtener requirements
@@ -270,12 +319,13 @@ def render_planos_step(model_router):
                         st.session_state.planos_analyzed[key] = result
                         st.rerun()
         
-        with col2:
+        with col3:
             if key in st.session_state.planos_analyzed:
                 result = st.session_state.planos_analyzed[key]
                 score = result.get('score', 0)
-                model_used = result.get('model_used', 'unknown')
+                confidence = result.get('confidence', 0)
                 
+                # Display score with color coding
                 if score >= 0.9:
                     st.success(f"✅ {score*100:.0f}%")
                 elif score >= 0.7:
@@ -283,41 +333,68 @@ def render_planos_step(model_router):
                 else:
                     st.error(f"❌ {score*100:.0f}%")
                 
-                st.caption(f"Modelo: {model_used}")
+                st.caption(f"Confianza: {confidence*100:.0f}%")
         
+        # Detailed analysis expandable
         if key in st.session_state.planos_analyzed:
-            with st.expander("Ver Análisis Detallado"):
+            with st.expander("📊 Ver Análisis Detallado con Confidence Scores"):
                 result = st.session_state.planos_analyzed[key]
                 
-                # Validaciones
-                st.markdown("**Validaciones:**")
+                # Overall metrics
+                col_a, col_b, col_c = st.columns(3)
+                
+                with col_a:
+                    st.metric("Score General", f"{result.get('score', 0)*100:.0f}%")
+                
+                with col_b:
+                    st.metric("Confianza IA", f"{result.get('confidence', 0)*100:.0f}%")
+                
+                with col_c:
+                    st.metric("Modelo", result.get('model_used', 'unknown'))
+                
+                st.markdown("---")
+                
+                # Section 2.1.9 Requirements with confidence
+                st.markdown("**Validaciones Sección 2.1.9:**")
                 for val in result.get('validations', []):
                     icon = "✅" if val['passed'] else "❌"
-                    st.markdown(f"{icon} **{val['check']}**")
+                    
+                    # Display check with confidence if available
+                    check_text = f"{icon} **{val['check']}**"
+                    
+                    if 'confidence' in val:
+                        check_text += f" (Confianza: {val['confidence']*100:.0f}%)"
+                    
+                    st.markdown(check_text)
                     st.caption(val.get('details', ''))
+                    
+                    if 'location' in val:
+                        st.caption(f"📍 {val['location']}")
                 
                 # Datos extraídos
                 if result.get('extracted_data'):
+                    st.markdown("---")
                     st.markdown("**Datos Extraídos:**")
                     for k, v in result['extracted_data'].items():
                         st.markdown(f"- **{k}:** {v}")
                 
                 # Issues
                 if result.get('issues'):
+                    st.markdown("---")
                     st.warning("**Issues Detectados:**")
                     for issue in result['issues']:
                         st.markdown(f"- {issue}")
                 
                 # Critical issues
                 if result.get('critical_issues'):
-                    st.error("**Issues Críticos:**")
+                    st.markdown("---")
+                    st.error("**Issues Críticos - Requieren Corrección:**")
                     for issue in result['critical_issues']:
                         st.markdown(f"- ⚠️ {issue}")
                 
-                # Costo y modelo
-                st.divider()
-                st.caption(f"Costo estimado: ${result.get('cost_estimate', 0):.4f}")
-                st.caption(f"Modelo usado: {result.get('model_used', 'unknown')}")
+                # Cost
+                st.markdown("---")
+                st.caption(f"💰 Costo de análisis: ${result.get('cost_estimate', 0):.4f}")
         
         st.divider()
     
@@ -326,7 +403,7 @@ def render_planos_step(model_router):
     
     with col1:
         if st.button("⬅️ Anterior", use_container_width=True):
-            st.session_state.pcoc_step = 1
+            st.session_state.pcoc_step = 2
             st.rerun()
     
     with col3:
@@ -337,16 +414,16 @@ def render_planos_step(model_router):
         
         if required_analyzed:
             if st.button("Ver Resultados →", type="primary", use_container_width=True):
-                st.session_state.pcoc_step = 3
+                st.session_state.pcoc_step = 4
                 st.rerun()
         else:
-            st.button("Analiza todos los planos", disabled=True, use_container_width=True)
+            st.button("Analiza todos los planos requeridos", disabled=True, use_container_width=True)
 
 
-def render_results_step(rules_db, model_router):
-    """Paso 4: Mostrar resultados"""
+def render_results_step_enhanced(rules_db, model_router):
+    """Paso 4: Resultados con confidence scores y re-upload"""
     
-    st.markdown("### Resultados de Validación")
+    st.markdown("### 📊 Resultados de Validación PCOC")
     
     # Crear validator y validar
     validator = PCOCValidator(model_router, rules_db)
@@ -357,50 +434,90 @@ def render_results_step(rules_db, model_router):
             uploaded_docs=st.session_state.pcoc_uploaded_docs
         )
     
-    # Mostrar score general
+    # Mostrar score general con confianza promedio
     score = results['overall_score']
     
-    if score >= 0.90:
-        st.success(f"### Validación Exitosa ({score*100:.0f}%)")
-        st.markdown("Tu solicitud cumple con los requisitos del Reglamento Conjunto")
-    elif score >= 0.70:
-        st.warning(f"### Requiere Correcciones ({score*100:.0f}%)")
-        st.markdown("Tu solicitud necesita ajustes menores antes de someter")
-    else:
-        st.error(f"### No Cumple Requisitos ({score*100:.0f}%)")
-        st.markdown("Tu solicitud tiene issues críticos que deben corregirse")
+    # Calculate average confidence
+    confidences = [
+        doc.get('confidence', 0)
+        for doc in results['document_scores'].values()
+    ]
+    avg_confidence = sum(confidences) / len(confidences) if confidences else 0
     
-    # Mostrar dirección validada si está disponible
+    # Display overall metrics
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if score >= 0.90:
+            st.success(f"### ✅ {score*100:.0f}%")
+            st.caption("Validación Exitosa")
+        elif score >= 0.70:
+            st.warning(f"### ⚠️ {score*100:.0f}%")
+            st.caption("Requiere Correcciones")
+        else:
+            st.error(f"### ❌ {score*100:.0f}%")
+            st.caption("No Cumple")
+    
+    with col2:
+        st.metric("Confianza Promedio IA", f"{avg_confidence*100:.0f}%")
+    
+    with col3:
+        st.metric("Documentos Analizados", len(results['document_scores']))
+    
+    st.markdown("---")
+    
+    # Compliance message
+    if score >= 0.90:
+        st.success("Tu solicitud cumple con los requisitos del Reglamento Conjunto Sección 2.1.9")
+    elif score >= 0.70:
+        st.warning("Tu solicitud necesita ajustes menores antes de someter")
+    else:
+        st.error("Tu solicitud tiene issues críticos que deben corregirse")
+    
+    # Mostrar dirección validada
     if st.session_state.pcoc_project_data.get('address_data'):
         addr_data = st.session_state.pcoc_project_data['address_data']
-        with st.expander("Dirección Validada por Google Maps"):
+        with st.expander("📍 Dirección Validada"):
             st.info(f"**Dirección:** {addr_data['formatted_address']}")
             st.caption(f"Coordenadas: {addr_data['latitude']}, {addr_data['longitude']}")
     
-    # Blockers críticos
+    # Critical blockers
     if results['critical_blockers']:
         st.markdown("---")
-        st.error("**🚫 Issues Críticos (deben corregirse):**")
+        st.error("### 🚫 Issues Críticos que Bloquean Aprobación:")
         for blocker in results['critical_blockers']:
             st.markdown(f"- {blocker}")
     
-    # Análisis por documento
+    # Análisis por documento CON CONFIDENCE
     st.markdown("---")
-    st.markdown("### 📄 Análisis por Documento")
+    st.markdown("### 📄 Análisis Detallado por Documento")
     
     for doc_type, doc_result in results['document_scores'].items():
-        with st.expander(f"{doc_type} - Score: {doc_result['score']*100:.0f}%"):
+        with st.expander(f"{doc_type} - Score: {doc_result['score']*100:.0f}% | Confianza: {doc_result.get('confidence', 0)*100:.0f}%"):
+            
+            # Show re-upload option if score is low
+            if doc_result['score'] < 0.9:
+                st.warning(f"Este documento no cumple todos los requisitos (score: {doc_result['score']*100:.0f}%)")
+                if st.button(f"🔄 Re-subir y Re-analizar {doc_type}", key=f"reupload_result_{doc_type}"):
+                    # Return to planos step to re-upload
+                    st.session_state.pcoc_step = 3
+                    st.rerun()
+            
             st.caption(f"Modelo: {doc_result.get('model_used', 'unknown')} | Costo: ${doc_result.get('cost_estimate', 0):.4f}")
             
+            st.markdown("**Requisitos Sección 2.1.9:**")
             for val in doc_result.get('validations', []):
                 icon = "✅" if val['passed'] else "❌"
-                st.markdown(f"{icon} {val['check']}")
+                conf_text = f" (Confianza: {val.get('confidence', doc_result.get('confidence', 0))*100:.0f}%)" if 'confidence' in val else ""
+                st.markdown(f"{icon} {val['check']}{conf_text}")
+                if not val['passed'] and val.get('details'):
+                    st.caption(f"⚠️ {val['details']}")
     
     # Recomendaciones
     st.markdown("---")
-    st.markdown("### Recomendaciones")
+    st.markdown("### 💡 Recomendaciones")
     for rec in results['recommendations']:
-        st.markdown(rec)
+        st.markdown(f"- {rec}")
     
     # Costo total
     total_cost = sum(
@@ -414,20 +531,22 @@ def render_results_step(rules_db, model_router):
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        if st.button("Descargar Reporte", use_container_width=True):
+        if st.button("📥 Descargar Reporte", use_container_width=True):
             st.info("Generación de PDF disponible en Sprint 2")
     
     with col2:
-        if st.button("Nueva Validación", use_container_width=True):
+        if st.button("🔄 Nueva Validación", use_container_width=True):
             # Reset wizard
             st.session_state.pcoc_step = 0
             st.session_state.pcoc_project_data = {}
             st.session_state.pcoc_uploaded_docs = {}
             st.session_state.planos_analyzed = {}
             st.session_state.pcoc_address_validated = False
+            st.session_state.questionnaire_answers = {}
+            st.session_state.current_question = 'start'
             st.rerun()
     
     with col3:
-        if st.button("Ir al Dashboard", use_container_width=True):
+        if st.button("📊 Ir al Dashboard", use_container_width=True):
             st.session_state.current_page = 'dashboard'
             st.rerun()
