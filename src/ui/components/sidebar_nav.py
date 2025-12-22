@@ -1,4 +1,4 @@
-# Sidebar Navigation Component
+# Sidebar Navigation Component - Cleaned version
 import streamlit as st
 from src.services.session_manager import SessionManager
 
