@@ -1,88 +1,133 @@
 {
   "zoning_districts": [
     {
-      "code": "R-1",
-      "name_es": "Residencial Baja Densidad",
+      "code": "R-B",
+      "name_es": "Residencial de Baja Densidad",
       "name_en": "Low Density Residential",
       "category": "residential",
-      "max_density": "2 units/acre",
+      "description_es": "Desarrollo residencial de baja densidad, típicamente viviendas unifamiliares",
       "min_lot_size": "800 m²",
-      "max_height": "2 stories",
-      "setbacks": {
-        "front": "6 m",
-        "side": "3 m",
-        "rear": "6 m"
-      }
+      "max_height": "2 pisos",
+      "max_coverage": "40%"
     },
     {
-      "code": "R-2",
-      "name_es": "Residencial Media Densidad",
-      "name_en": "Medium Density Residential",
+      "code": "R-I",
+      "name_es": "Residencial Intermedio",
+      "name_en": "Intermediate Residential",
       "category": "residential",
-      "max_density": "6 units/acre",
+      "description_es": "Desarrollo residencial de densidad intermedia",
       "min_lot_size": "400 m²",
-      "max_height": "3 stories",
-      "setbacks": {
-        "front": "4.5 m",
-        "side": "2.5 m",
-        "rear": "4.5 m"
-      }
+      "max_height": "3 pisos",
+      "max_coverage": "50%"
     },
     {
-      "code": "R-3",
-      "name_es": "Residencial Alta Densidad",
-      "name_en": "High Density Residential",
+      "code": "R-U",
+      "name_es": "Residencial Urbano",
+      "name_en": "Urban Residential",
       "category": "residential",
-      "max_density": "12 units/acre",
+      "description_es": "Desarrollo residencial urbano de densidad media-alta",
       "min_lot_size": "200 m²",
-      "max_height": "4 stories",
-      "setbacks": {
-        "front": "3 m",
-        "side": "2 m",
-        "rear": "3 m"
-      }
+      "max_height": "4 pisos",
+      "max_coverage": "60%"
     },
     {
-      "code": "R-T",
-      "name_es": "Residencial Turístico",
-      "name_en": "Tourist Residential",
-      "category": "residential",
-      "max_density": "20 units/acre",
-      "min_lot_size": "150 m²",
-      "max_height": "6 stories"
+      "code": "R-C",
+      "name_es": "Residencial Comercial",
+      "name_en": "Residential Commercial",
+      "category": "mixed",
+      "description_es": "Uso mixto residencial-comercial",
+      "min_lot_size": "200 m²",
+      "max_height": "4 pisos",
+      "max_coverage": "70%"
     },
     {
       "code": "C-L",
       "name_es": "Comercial Liviano",
       "name_en": "Light Commercial",
       "category": "commercial",
+      "description_es": "Comercio de escala vecinal o de barrio",
       "max_coverage": "60%",
-      "max_height": "3 stories",
-      "parking_ratio": "1 per 30 m²"
+      "max_height": "3 pisos",
+      "parking_ratio": "1 por 30 m²"
     },
     {
       "code": "C-I",
       "name_es": "Comercial Intermedio",
       "name_en": "Intermediate Commercial",
       "category": "commercial",
+      "description_es": "Comercio de escala intermedia o comunitaria",
       "max_coverage": "70%",
-      "max_height": "5 stories",
-      "parking_ratio": "1 per 30 m²"
+      "max_height": "5 pisos",
+      "parking_ratio": "1 por 30 m²"
     },
     {
       "code": "C-C",
-      "name_es": "Centro Comercial",
-      "name_en": "Commercial Center",
+      "name_es": "Comercial Central",
+      "name_en": "Central Commercial",
       "category": "commercial",
+      "description_es": "Centro comercial o distrito comercial principal",
       "max_coverage": "80%",
-      "max_height": "No limit",
-      "parking_ratio": "1 per 25 m²"
+      "max_height": "Sin límite",
+      "parking_ratio": "1 por 25 m²"
+    },
+    {
+      "code": "RC-E",
+      "name_es": "Recreación Comercial Extensa",
+      "name_en": "Extensive Commercial Recreation",
+      "category": "commercial",
+      "description_es": "Usos recreativos y comerciales de gran escala",
+      "max_coverage": "50%"
+    },
+    {
+      "code": "RT-I",
+      "name_es": "Residencial Turístico Intermedio",
+      "name_en": "Intermediate Tourist Residential",
+      "category": "tourist",
+      "description_es": "Desarrollo turístico residencial de densidad intermedia",
+      "min_lot_size": "300 m²",
+      "max_height": "5 pisos",
+      "max_density": "15 units/acre"
+    },
+    {
+      "code": "RT-A",
+      "name_es": "Residencial Turístico de Alta Densidad",
+      "name_en": "High Density Tourist Residential",
+      "category": "tourist",
+      "description_es": "Desarrollo turístico de alta densidad",
+      "min_lot_size": "150 m²",
+      "max_height": "8 pisos",
+      "max_density": "25 units/acre"
+    },
+    {
+      "code": "C-T",
+      "name_es": "Comercial Turístico",
+      "name_en": "Tourist Commercial",
+      "category": "tourist",
+      "description_es": "Comercio orientado al turismo",
+      "max_coverage": "70%",
+      "max_height": "6 pisos"
+    },
+    {
+      "code": "DTS",
+      "name_es": "Desarrollo Turístico Selectivo",
+      "name_en": "Selective Tourist Development",
+      "category": "tourist",
+      "description_es": "Desarrollo turístico con criterios selectivos de diseño y escala"
+    },
+    {
+      "code": "I-E",
+      "name_es": "Industria Especializada",
+      "name_en": "Specialized Industry",
+      "category": "industrial",
+      "description_es": "Industria de tecnología o manufactura especializada",
+      "buffer_zone": "50 m from residential"
     },
     {
       "code": "I-L",
       "name_es": "Industrial Liviano",
       "name_en": "Light Industrial",
       "category": "industrial",
+      "description_es": "Industria liviana con bajo impacto ambiental",
       "max_coverage": "70%",
       "buffer_zone": "50 m from residential"
     },
@@ -91,16 +136,107 @@
       "name_es": "Industrial Pesado",
       "name_en": "Heavy Industrial",
       "category": "industrial",
+      "description_es": "Industria pesada o de alto impacto",
       "max_coverage": "75%",
       "buffer_zone": "100 m from residential"
     },
     {
-      "code": "A-R",
-      "name_es": "Agrícola Rústico",
-      "name_en": "Rural Agricultural",
+      "code": "ARD",
+      "name_es": "Área Rural Desarrollada",
+      "name_en": "Developed Rural Area",
+      "category": "rural",
+      "description_es": "Área rural con desarrollo existente",
+      "min_lot_size": "1000 m²"
+    },
+    {
+      "code": "R-G",
+      "name_es": "Rural General",
+      "name_en": "General Rural",
+      "category": "rural",
+      "description_es": "Uso rural general con actividades agrícolas y residenciales de baja densidad",
+      "min_lot_size": "2000 m²",
+      "max_coverage": "25%"
+    },
+    {
+      "code": "A-G",
+      "name_es": "Agrícola General",
+      "name_en": "General Agricultural",
       "category": "agricultural",
+      "description_es": "Uso agrícola general y actividades relacionadas",
       "min_lot_size": "2000 m²",
       "max_coverage": "20%"
+    },
+    {
+      "code": "A-P",
+      "name_es": "Agrícola Productivo",
+      "name_en": "Productive Agricultural",
+      "category": "agricultural",
+      "description_es": "Suelos de alto valor agrícola para producción",
+      "min_lot_size": "3000 m²",
+      "max_coverage": "15%"
+    },
+    {
+      "code": "D-G",
+      "name_es": "Dotacional General",
+      "name_en": "General Institutional",
+      "category": "institutional",
+      "description_es": "Usos institucionales, educativos, de salud y servicios públicos"
+    },
+    {
+      "code": "D-A",
+      "name_es": "Dotacional Área Abierta",
+      "name_en": "Open Space Institutional",
+      "category": "institutional",
+      "description_es": "Parques, plazas y espacios abiertos de uso público"
+    },
+    {
+      "code": "A-B",
+      "name_es": "Área de Bosques",
+      "name_en": "Forest Area",
+      "category": "conservation",
+      "description_es": "Bosques y áreas naturales protegidas"
+    },
+    {
+      "code": "C-R",
+      "name_es": "Conservación de Recursos",
+      "name_en": "Resource Conservation",
+      "category": "conservation",
+      "description_es": "Conservación de recursos naturales y paisajísticos"
+    },
+    {
+      "code": "P-R",
+      "name_es": "Preservación de Recursos",
+      "name_en": "Resource Preservation",
+      "category": "conservation",
+      "description_es": "Preservación estricta de recursos naturales críticos"
+    },
+    {
+      "code": "R-E",
+      "name_es": "Ruta Escénica",
+      "name_en": "Scenic Route",
+      "category": "conservation",
+      "description_es": "Corredores escénicos con restricciones visuales"
+    },
+    {
+      "code": "P-P",
+      "name_es": "Playa Pública",
+      "name_en": "Public Beach",
+      "category": "conservation",
+      "description_es": "Playas de uso público"
+    },
+    {
+      "code": "S-H",
+      "name_es": "Sitio Histórico",
+      "name_en": "Historic Site",
+      "category": "conservation",
+      "description_es": "Sitios de valor histórico protegidos"
+    },
+    {
+      "code": "C-H",
+      "name_es": "Conservación Histórica",
+      "name_en": "Historic Conservation",
+      "category": "conservation",
+      "description_es": "Distritos o zonas históricas con regulaciones especiales"
     }
   ]
 }

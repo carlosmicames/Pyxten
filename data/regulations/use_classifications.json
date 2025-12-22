@@ -5,7 +5,7 @@
       "name_es": "Residencial Unifamiliar",
       "name_en": "Single Family Residential",
       "category": "residential",
-      "compatible_zones": ["R-1", "R-2", "R-3", "R-T"],
+      "compatible_zones": ["R-B", "R-I", "R-U", "R-C", "RT-I", "RT-A"],
       "ministerial": true,
       "description_es": "Vivienda para una sola familia"
     },
@@ -14,7 +14,7 @@
       "name_es": "Residencial Multifamiliar",
       "name_en": "Multifamily Residential",
       "category": "residential",
-      "compatible_zones": ["R-2", "R-3", "R-T"],
+      "compatible_zones": ["R-I", "R-U", "R-C", "RT-I", "RT-A"],
       "ministerial": true,
       "description_es": "Edificio con múltiples unidades residenciales"
     },
@@ -23,7 +23,7 @@
       "name_es": "Oficina Profesional",
       "name_en": "Professional Office",
       "category": "commercial",
-      "compatible_zones": ["C-L", "C-I", "C-C"],
+      "compatible_zones": ["C-L", "C-I", "C-C", "R-C", "C-T"],
       "ministerial": true,
       "parking_required": "1 per 30 m²",
       "description_es": "Oficina administrativa o profesional"
@@ -33,7 +33,7 @@
       "name_es": "Comercio al Detal",
       "name_en": "Retail",
       "category": "commercial",
-      "compatible_zones": ["C-L", "C-I", "C-C"],
+      "compatible_zones": ["C-L", "C-I", "C-C", "R-C", "C-T"],
       "ministerial": true,
       "parking_required": "1 per 25 m²",
       "description_es": "Venta al público de mercancías"
@@ -43,7 +43,7 @@
       "name_es": "Restaurante",
       "name_en": "Restaurant",
       "category": "commercial",
-      "compatible_zones": ["C-L", "C-I", "C-C"],
+      "compatible_zones": ["C-L", "C-I", "C-C", "R-C", "C-T"],
       "ministerial": false,
       "requires_health_permit": true,
       "parking_required": "1 per 10 seats",
@@ -54,7 +54,7 @@
       "name_es": "Almacén",
       "name_en": "Warehouse",
       "category": "commercial",
-      "compatible_zones": ["C-I", "C-C", "I-L"],
+      "compatible_zones": ["C-I", "C-C", "I-L", "I-E"],
       "ministerial": true,
       "description_es": "Almacenamiento de mercancías"
     },
@@ -63,7 +63,7 @@
       "name_es": "Manufactura Liviana",
       "name_en": "Light Manufacturing",
       "category": "industrial",
-      "compatible_zones": ["I-L", "I-P"],
+      "compatible_zones": ["I-L", "I-E", "I-P"],
       "ministerial": false,
       "requires_environmental": true,
       "description_es": "Producción industrial sin contaminantes"
@@ -79,20 +79,75 @@
       "description_es": "Producción industrial pesada"
     },
     {
+      "code": "TOURIST-HOTEL",
+      "name_es": "Hotel o Hospedaje Turístico",
+      "name_en": "Hotel or Tourist Lodging",
+      "category": "tourist",
+      "compatible_zones": ["RT-I", "RT-A", "C-T", "DTS", "C-C"],
+      "ministerial": false,
+      "requires_environmental": true,
+      "description_es": "Alojamiento turístico comercial"
+    },
+    {
       "code": "AGR-FARM",
       "name_es": "Finca Agrícola",
       "name_en": "Agricultural Farm",
       "category": "agricultural",
-      "compatible_zones": ["A-R"],
+      "compatible_zones": ["A-G", "A-P", "R-G"],
       "ministerial": true,
       "description_es": "Cultivo de productos agrícolas"
+    },
+    {
+      "code": "AGR-LIVESTOCK",
+      "name_es": "Ganadería",
+      "name_en": "Livestock",
+      "category": "agricultural",
+      "compatible_zones": ["A-G", "R-G"],
+      "ministerial": true,
+      "description_es": "Crianza de animales"
+    },
+    {
+      "code": "RURAL-RESIDENCE",
+      "name_es": "Residencia Rural",
+      "name_en": "Rural Residence",
+      "category": "rural",
+      "compatible_zones": ["R-G", "ARD", "A-G"],
+      "ministerial": true,
+      "description_es": "Vivienda en zona rural"
+    },
+    {
+      "code": "INST-SCHOOL",
+      "name_es": "Escuela o Centro Educativo",
+      "name_en": "School or Educational Center",
+      "category": "institutional",
+      "compatible_zones": ["D-G", "R-I", "R-U"],
+      "ministerial": false,
+      "description_es": "Institución educativa"
+    },
+    {
+      "code": "INST-HEALTH",
+      "name_es": "Centro de Salud",
+      "name_en": "Health Center",
+      "category": "institutional",
+      "compatible_zones": ["D-G", "C-I", "C-C"],
+      "ministerial": false,
+      "description_es": "Clínica u hospital"
+    },
+    {
+      "code": "INST-RELIGIOUS",
+      "name_es": "Templo o Iglesia",
+      "name_en": "Church or Temple",
+      "category": "institutional",
+      "compatible_zones": ["D-G", "R-B", "R-I", "R-U"],
+      "ministerial": false,
+      "description_es": "Lugar de culto religioso"
     },
     {
       "code": "MIX-USE",
       "name_es": "Uso Mixto",
       "name_en": "Mixed Use",
       "category": "mixed",
-      "compatible_zones": ["C-I", "C-C"],
+      "compatible_zones": ["R-C", "C-I", "C-C"],
       "ministerial": false,
       "description_es": "Combinación de usos residenciales y comerciales"
     }
