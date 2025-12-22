@@ -31,8 +31,8 @@ def render_homepage(rules_db, claude_ai=None, model_router=None):
     
     # TAB 1: Validación Fase 1 (Formulario)
     with tab1:
-        from src.ui.components.phase1_enhanced_wizard import render_enhanced_phase1
-        render_enhanced_phase1(rules_db)
+        from src.ui.components.phase1_simplified_wizard import render_simplified_phase1
+        render_simplified_phase1(rules_db)
     
     # TAB 2: Validación Fase 2 (PCOC / Upsell)
     with tab2:
