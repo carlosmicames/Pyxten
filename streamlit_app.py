@@ -26,7 +26,7 @@ from src.services.session_manager import SessionManager
 
 # Import UI components
 from src.ui.components.sidebar_nav import render_sidebar
-from src.ui.components.homepage_validation_simplified import render_homepage
+from src.ui.components.homepage_validation import render_homepage
 from src.ui.components.dashboard import render_dashboard
 from src.ui.pages.pricing import render_pricing_page
 from src.ui.pages.new_project import render_new_project_page
