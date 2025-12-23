@@ -1,6 +1,3 @@
-
-Copy
-
 """
 ArcGIS PR Client - Integration with MIPR and CRIM GIS services
 Queries zoning (Calificación), parcels (CRIM), and overlay zones
