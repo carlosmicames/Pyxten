@@ -1,0 +1,484 @@
+{
+  "distritos": {
+    "R-B": {
+      "name": "Residencial Baja Densidad",
+      "category": "Residencial",
+      "usos": [
+        "Vivienda unifamiliar",
+        "Segundas plantas",
+        "Micro casas (tiny houses)",
+        "Casas patio",
+        "Casas en hileras",
+        "Apartamentos",
+        "Hospedajes especializados",
+        "Centros de cuido",
+        "Casas de salud",
+        "Huertos urbanos",
+        "Bed and Breakfast",
+        "Alojamiento corto plazo",
+        "Empresas emergentes (startups)"
+      ]
+    },
+    "R-I": {
+      "name": "Residencial Intermedio",
+      "category": "Residencial",
+      "usos": [
+        "Vivienda unifamiliar",
+        "Segundas plantas",
+        "Micro casas (tiny houses)",
+        "Casas patio",
+        "Casas en hileras",
+        "Apartamentos",
+        "Casas de huéspedes (guest house)",
+        "Hospedajes especializados",
+        "Centros de cuido",
+        "Casas de salud",
+        "Huertos urbanos",
+        "Bed and Breakfast",
+        "Alojamiento corto plazo",
+        "Empresas emergentes (startups)"
+      ]
+    },
+    "R-U": {
+      "name": "Residencial Urbano",
+      "category": "Residencial",
+      "usos": [
+        "Vivienda unifamiliar",
+        "Vivienda multifamiliar",
+        "Apartamentos",
+        "Micro casas (tiny houses)",
+        "Casas patio",
+        "Casas en hileras",
+        "Hospedajes especializados",
+        "Centros de cuido",
+        "Casas de salud",
+        "Huertos urbanos",
+        "Bed and Breakfast",
+        "Alojamiento corto plazo",
+        "Empresas emergentes (startups)",
+        "Estacionamientos (nivel suelo)",
+        "Estacionamientos (estructuras)"
+      ]
+    },
+    "R-C": {
+      "name": "Residencial Comercial (Mixto)",
+      "category": "Residencial",
+      "usos": [
+        "Vivienda unifamiliar",
+        "Vivienda multifamiliar",
+        "Apartamentos",
+        "Micro casas (tiny houses)",
+        "Venta al detal (primera planta)",
+        "Farmacias",
+        "Restaurantes",
+        "Galerías",
+        "Joyerías",
+        "Oficinas profesionales",
+        "Gimnasios",
+        "Instituciones financieras",
+        "Funerarias"
+      ]
+    },
+    "C-L": {
+      "name": "Comercial Liviano",
+      "category": "Comercial",
+      "usos": [
+        "Venta al detal",
+        "Oficinas",
+        "Ferreterías (sin materiales pesados)",
+        "Farmacias",
+        "Restaurantes",
+        "Hospederías",
+        "Centros de cuido",
+        "Laboratorios",
+        "Dispensarios cannabis medicinal",
+        "Barberías",
+        "Lavanderías"
+      ]
+    },
+    "C-I": {
+      "name": "Comercial Intermedio",
+      "category": "Comercial",
+      "usos": [
+        "Venta al detal",
+        "Venta al por mayor",
+        "Oficinas",
+        "Ferreterías",
+        "Farmacias",
+        "Restaurantes",
+        "Hospederías",
+        "Centros de cuido",
+        "Laboratorios",
+        "Estaciones de gasolina",
+        "Teatros",
+        "Museos",
+        "Alquiler automóviles",
+        "Exhibición automóviles",
+        "Funerarias",
+        "Barberías",
+        "Lavanderías"
+      ]
+    },
+    "C-C": {
+      "name": "Comercial Central",
+      "category": "Comercial",
+      "usos": [
+        "Clubes de venta (detal/mayor)",
+        "Talleres reparación vehicular",
+        "Hojalatería",
+        "Cinemas",
+        "Centros cultivo cannabis",
+        "Manufactura cannabis",
+        "Armerías",
+        "Estudios de radio/TV",
+        "Todos los usos de C-L y C-I"
+      ]
+    },
+    "RC-E": {
+      "name": "Recreación Comercial Extensa",
+      "category": "Comercial",
+      "usos": [
+        "Pistas de carreras",
+        "Estadios",
+        "Coliseos",
+        "Estudios cinematográficos",
+        "Hipódromos",
+        "Parques de diversiones",
+        "Áreas de piscinas",
+        "Hoteles",
+        "Polígonos de tiro"
+      ]
+    },
+    "RT-I": {
+      "name": "Turístico Intermedio",
+      "category": "Turístico",
+      "usos": [
+        "Vivienda (todas las clases)",
+        "Agro-hospederías",
+        "Eco-hospederías",
+        "Hoteles",
+        "Condohoteles",
+        "Villas",
+        "Hostales",
+        "Agencias de viaje",
+        "Venta de suvenires"
+      ]
+    },
+    "RT-A": {
+      "name": "Turístico Alta Densidad",
+      "category": "Turístico",
+      "usos": [
+        "Vivienda (todas las clases)",
+        "Agro-hospederías",
+        "Eco-hospederías",
+        "Hoteles",
+        "Condohoteles",
+        "Villas",
+        "Hostales",
+        "Agencias de viaje",
+        "Venta de suvenires"
+      ]
+    },
+    "C-T": {
+      "name": "Comercial Turístico",
+      "category": "Turístico",
+      "usos": [
+        "Comercio al detal (niveles bajos)",
+        "Museos (niveles bajos)",
+        "Restaurantes (niveles bajos)",
+        "Bancos (niveles bajos)",
+        "Residencias (niveles superiores)",
+        "Hospederías (niveles superiores)"
+      ]
+    },
+    "DTS": {
+      "name": "Desarrollo Turístico Selectivo",
+      "category": "Turístico",
+      "usos": [
+        "Hoteles",
+        "Paradores",
+        "Villas",
+        "Agro-hospederías",
+        "Eco-hospederías",
+        "Actividades agrícolas",
+        "Actividades agroecológicas"
+      ]
+    },
+    "I-E": {
+      "name": "Industria Especializada",
+      "category": "Industrial",
+      "usos": [
+        "Extracción de materiales",
+        "Vertederos",
+        "Plantas de asfalto",
+        "Plantas de hormigón",
+        "Procesamiento de arena",
+        "Manufactura de bloques",
+        "Proyectos energía renovable",
+        "Junkers"
+      ]
+    },
+    "I-L": {
+      "name": "Industrial Liviano",
+      "category": "Industrial",
+      "usos": [
+        "Aserraderos",
+        "Almacenes",
+        "Ebanistería",
+        "Manufactura ligera",
+        "Centros de reciclaje",
+        "Escuelas vocacionales",
+        "Laboratorios",
+        "Manufactura de cannabis"
+      ]
+    },
+    "I-P": {
+      "name": "Industrial Pesado",
+      "category": "Industrial",
+      "usos": [
+        "Almacenaje químicos/explosivos",
+        "Plantas generatrices",
+        "Macelos",
+        "Refinamiento de petróleo",
+        "Farmacéuticas de síntesis",
+        "Procesamiento desperdicios biomédicos"
+      ]
+    },
+    "ARD": {
+      "name": "Área Rural Desarrollada",
+      "category": "Agrícola/Rural",
+      "usos": [
+        "Vivienda (1-2 familias)",
+        "Micro casas",
+        "Agro-hospederías",
+        "Comercio detal (primera necesidad)",
+        "Cafeterías",
+        "Restaurantes",
+        "Oficinas"
+      ]
+    },
+    "R-G": {
+      "name": "Rural General",
+      "category": "Agrícola/Rural",
+      "usos": [
+        "Agroecología",
+        "Vivienda limitada",
+        "Detal pequeño",
+        "Industria liviana (hasta 15,000 p²)",
+        "Almacenes",
+        "Servicios de salud",
+        "Servicios de educación",
+        "Eco-hospederías"
+      ]
+    },
+    "A-G": {
+      "name": "Agrícola General",
+      "category": "Agrícola/Rural",
+      "usos": [
+        "Pesca",
+        "Maricultura",
+        "Siembra",
+        "Crianza de animales",
+        "Vaquerías",
+        "Polleras",
+        "Agro-hospederías",
+        "Talleres equipo agrícola"
+      ]
+    },
+    "A-P": {
+      "name": "Agrícola Productivo",
+      "category": "Agrícola/Rural",
+      "usos": [
+        "Actividades agropecuarias",
+        "Procesamiento productos agrícolas",
+        "Agro-hospederías",
+        "Vivienda limitada (agricultor)"
+      ]
+    },
+    "D-G": {
+      "name": "Dotacional General",
+      "category": "Dotacional/Conservación",
+      "usos": [
+        "Aeropuertos",
+        "Hospitales",
+        "Cementerios",
+        "Oficinas gubernamentales",
+        "Iglesias",
+        "Universidades",
+        "Museos"
+      ]
+    },
+    "D-A": {
+      "name": "Dotacional Área Abierta",
+      "category": "Dotacional/Conservación",
+      "usos": [
+        "Parques",
+        "Instalaciones recreativas al aire libre",
+        "Gazebos",
+        "Plazas"
+      ]
+    },
+    "A-B": {
+      "name": "Área de Bosque",
+      "category": "Dotacional/Conservación",
+      "usos": [
+        "Silvicultura",
+        "Agro-forestería",
+        "Siembra de árboles",
+        "Recreación pasiva",
+        "Aserraderos",
+        "Artesanías"
+      ]
+    },
+    "C-R": {
+      "name": "Conservación de Recursos",
+      "category": "Dotacional/Conservación",
+      "usos": [
+        "Ecoturismo",
+        "Silvicultura",
+        "Instalaciones recreativas",
+        "Protección cuencas/cuevas",
+        "Agricultura bajo impacto"
+      ]
+    },
+    "P-R": {
+      "name": "Preservación de Recursos",
+      "category": "Dotacional/Conservación",
+      "usos": [
+        "Estudios científicos",
+        "Contemplación supervisada"
+      ]
+    },
+    "R-E": {
+      "name": "Ruta Escénica",
+      "category": "Dotacional/Conservación",
+      "usos": [
+        "Vivienda unifamiliar",
+        "Miraderos",
+        "Merenderos",
+        "Instalaciones ecoturísticas",
+        "Venta productos del predio"
+      ]
+    },
+    "P-P": {
+      "name": "Playas Públicas",
+      "category": "Dotacional/Conservación",
+      "usos": [
+        "Balnearios",
+        "Servicios a bañistas",
+        "Villas pesqueras",
+        "Deportes acuáticos (buceo)",
+        "Deportes acuáticos (surfeo)",
+        "Quioscos accesorios"
+      ]
+    },
+    "S-H": {
+      "name": "Sitio Histórico",
+      "category": "Histórico/Especial",
+      "usos": [
+        "Uso original de estructura",
+        "Residencial",
+        "Museos",
+        "Hospedajes especializados",
+        "Investigación arqueológica"
+      ]
+    },
+    "C-H": {
+      "name": "Conservación Histórica",
+      "category": "Histórico/Especial",
+      "usos": [
+        "Uso original de estructura",
+        "Residencial",
+        "Museos",
+        "Hospedajes especializados",
+        "Investigación arqueológica"
+      ]
+    },
+    "M": {
+      "name": "A Mejorarse",
+      "category": "Histórico/Especial",
+      "usos": [
+        "Vivienda",
+        "Servicios básicos",
+        "Detal (vía excepción)",
+        "Cuido de niños (vía excepción)"
+      ]
+    },
+    "R-EA": {
+      "name": "Riesgo para Espacios Abiertos",
+      "category": "Histórico/Especial",
+      "usos": [
+        "Parques",
+        "Cultivos",
+        "Pastoreo",
+        "Manejo de humedales",
+        "Actividades de mitigación"
+      ]
+    }
+  },
+  "tipos_proyecto": {
+    "Residencial": {
+      "icon": "🏠",
+      "subtipos": [
+        "Nueva Construcción",
+        "Remodelación",
+        "Cambio de Uso",
+        "Ampliación"
+      ]
+    },
+    "Comercial": {
+      "icon": "🏢",
+      "subtipos": [
+        "Nueva Construcción",
+        "Remodelación",
+        "Cambio de Uso",
+        "Ampliación"
+      ]
+    },
+    "Industrial": {
+      "icon": "🏭",
+      "subtipos": [
+        "Nueva Construcción",
+        "Remodelación",
+        "Cambio de Uso",
+        "Ampliación"
+      ]
+    },
+    "Turístico": {
+      "icon": "🏖️",
+      "subtipos": [
+        "Nueva Construcción",
+        "Remodelación",
+        "Cambio de Uso",
+        "Ampliación"
+      ]
+    },
+    "Agrícola/Rural": {
+      "icon": "🌾",
+      "subtipos": [
+        "Nueva Construcción",
+        "Remodelación",
+        "Cambio de Uso",
+        "Ampliación"
+      ]
+    },
+    "Dotacional/Conservación": {
+      "icon": "🌳",
+      "subtipos": [
+        "Nueva Construcción",
+        "Remodelación",
+        "Cambio de Uso",
+        "Ampliación"
+      ]
+    },
+    "Histórico/Especial": {
+      "icon": "🏛️",
+      "subtipos": [
+        "Nueva Construcción",
+        "Remodelación",
+        "Cambio de Uso",
+        "Ampliación"
+      ]
+    }
+  }
+}
