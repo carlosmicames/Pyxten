@@ -1,0 +1,111 @@
+[
+  {
+    "test_name": "Old San Juan - Calle del Cristo",
+    "success": true,
+    "zoning": {
+      "district_code": "D",
+      "district_name": "Tenencia Pública",
+      "source": "MIPR Calificación",
+      "last_updated": null,
+      "confidence": "high",
+      "municipality": "San Juan",
+      "raw_data": {
+        "OBJECTID": 862738,
+        "num_catast": "040-002-034-02",
+        "numcaso": " ",
+        "cali": "D",
+        "descrip": "Tenencia Pública",
+        "clasi": "SU",
+        "descrip1": "Suelo Urbano",
+        "resolucion": " ",
+        "vigencia": " ",
+        "regla": 133,
+        "cali_sobre": " ",
+        "des_sobre": " ",
+        "barrio": "San Juan Antiguo",
+        "municipio": "San Juan",
+        "Region": "Este",
+        "SHAPE.STArea()": 1764.71297687,
+        "SHAPE.STLength()": 215.55977300288708
+      },
+      "error": null
+    },
+    "overlays": [],
+    "pot": {
+      "has_pot": false,
+      "error": "HTTPSConnectionPool(host='sige.pr.gov', port=443): Max retries exceeded with url: /server/rest/services/MIPR/Reglamentario/MapServer/39/query?geometry=-7360066.243958022%2C2092107.14447393&geometryType=esriGeometryPoint&inSR=3857&spatialRel=esriSpatialRelIntersects&outFields=%2A&returnGeometry=false&f=json (Caused by NameResolutionError(\"HTTPSConnection(host='sige.pr.gov', port=443): Failed to resolve 'sige.pr.gov' ([Errno 11002] getaddrinfo failed)\"))"
+    }
+  },
+  {
+    "test_name": "Condado - Av. Ashford",
+    "success": false,
+    "zoning": {
+      "district_code": null,
+      "district_name": null,
+      "source": "MIPR",
+      "last_updated": null,
+      "confidence": "low",
+      "raw_data": {},
+      "error": "Error querying MIPR: HTTPSConnectionPool(host='sige.pr.gov', port=443): Max retries exceeded with url: /server/rest/services/MIPR/Calificacion/MapServer/0/query?geometry=-7355424.221192589%2C2091590.7586340276&geometryType=esriGeometryPoint&inSR=3857&spatialRel=esriSpatialRelIntersects&distance=10&units=esriSRUnit_Meter&outFields=%2A&returnGeometry=false&f=json (Caused by NameResolutionError(\"HTTPSConnection(host='sige.pr.gov', port=443): Failed to resolve 'sige.pr.gov' ([Errno 11002] getaddrinfo failed)\"))"
+    },
+    "overlays": [],
+    "pot": {
+      "has_pot": false,
+      "error": "HTTPSConnectionPool(host='sige.pr.gov', port=443): Max retries exceeded with url: /server/rest/services/MIPR/Reglamentario/MapServer/39/query?geometry=-7355424.221192589%2C2091590.7586340276&geometryType=esriGeometryPoint&inSR=3857&spatialRel=esriSpatialRelIntersects&outFields=%2A&returnGeometry=false&f=json (Caused by NameResolutionError(\"HTTPSConnection(host='sige.pr.gov', port=443): Failed to resolve 'sige.pr.gov' ([Errno 11002] getaddrinfo failed)\"))"
+    }
+  },
+  {
+    "test_name": "Santurce - Residential Area",
+    "success": false,
+    "zoning": {
+      "district_code": null,
+      "district_name": null,
+      "source": "MIPR",
+      "last_updated": null,
+      "confidence": "low",
+      "raw_data": {},
+      "error": "Error querying MIPR: HTTPSConnectionPool(host='sige.pr.gov', port=443): Max retries exceeded with url: /server/rest/services/MIPR/Calificacion/MapServer/0/query?geometry=-7352652.365872221%2C2090288.1168084166&geometryType=esriGeometryPoint&inSR=3857&spatialRel=esriSpatialRelIntersects&distance=10&units=esriSRUnit_Meter&outFields=%2A&returnGeometry=false&f=json (Caused by NameResolutionError(\"HTTPSConnection(host='sige.pr.gov', port=443): Failed to resolve 'sige.pr.gov' ([Errno 11002] getaddrinfo failed)\"))"
+    },
+    "overlays": [],
+    "pot": {
+      "has_pot": false,
+      "error": "HTTPSConnectionPool(host='sige.pr.gov', port=443): Max retries exceeded with url: /server/rest/services/MIPR/Reglamentario/MapServer/39/query?geometry=-7352652.365872221%2C2090288.1168084166&geometryType=esriGeometryPoint&inSR=3857&spatialRel=esriSpatialRelIntersects&outFields=%2A&returnGeometry=false&f=json (Caused by NameResolutionError(\"HTTPSConnection(host='sige.pr.gov', port=443): Failed to resolve 'sige.pr.gov' ([Errno 11002] getaddrinfo failed)\"))"
+    }
+  },
+  {
+    "test_name": "Ponce Centro",
+    "success": false,
+    "zoning": {
+      "district_code": null,
+      "district_name": null,
+      "source": "MIPR",
+      "last_updated": null,
+      "confidence": "low",
+      "raw_data": {},
+      "error": "Error querying MIPR: HTTPSConnectionPool(host='sige.pr.gov', port=443): Max retries exceeded with url: /server/rest/services/MIPR/Calificacion/MapServer/0/query?geometry=-7415447.690619965%2C2038847.820825485&geometryType=esriGeometryPoint&inSR=3857&spatialRel=esriSpatialRelIntersects&distance=10&units=esriSRUnit_Meter&outFields=%2A&returnGeometry=false&f=json (Caused by NameResolutionError(\"HTTPSConnection(host='sige.pr.gov', port=443): Failed to resolve 'sige.pr.gov' ([Errno 11002] getaddrinfo failed)\"))"
+    },
+    "overlays": [],
+    "pot": {
+      "has_pot": false,
+      "error": "HTTPSConnectionPool(host='sige.pr.gov', port=443): Max retries exceeded with url: /server/rest/services/MIPR/Reglamentario/MapServer/39/query?geometry=-7415447.690619965%2C2038847.820825485&geometryType=esriGeometryPoint&inSR=3857&spatialRel=esriSpatialRelIntersects&outFields=%2A&returnGeometry=false&f=json (Caused by NameResolutionError(\"HTTPSConnection(host='sige.pr.gov', port=443): Failed to resolve 'sige.pr.gov' ([Errno 11002] getaddrinfo failed)\"))"
+    }
+  },
+  {
+    "test_name": "Carolina - Near Airport",
+    "success": false,
+    "zoning": {
+      "district_code": null,
+      "district_name": null,
+      "source": "MIPR",
+      "last_updated": null,
+      "confidence": "low",
+      "raw_data": {},
+      "error": "Error querying MIPR: HTTPSConnectionPool(host='sige.pr.gov', port=443): Max retries exceeded with url: /server/rest/services/MIPR/Calificacion/MapServer/0/query?geometry=-7346963.9398934785%2C2087319.3468333702&geometryType=esriGeometryPoint&inSR=3857&spatialRel=esriSpatialRelIntersects&distance=10&units=esriSRUnit_Meter&outFields=%2A&returnGeometry=false&f=json (Caused by NameResolutionError(\"HTTPSConnection(host='sige.pr.gov', port=443): Failed to resolve 'sige.pr.gov' ([Errno 11002] getaddrinfo failed)\"))"
+    },
+    "overlays": [],
+    "pot": {
+      "has_pot": false,
+      "error": "HTTPSConnectionPool(host='sige.pr.gov', port=443): Max retries exceeded with url: /server/rest/services/MIPR/Reglamentario/MapServer/39/query?geometry=-7346963.9398934785%2C2087319.3468333702&geometryType=esriGeometryPoint&inSR=3857&spatialRel=esriSpatialRelIntersects&outFields=%2A&returnGeometry=false&f=json (Caused by NameResolutionError(\"HTTPSConnection(host='sige.pr.gov', port=443): Failed to resolve 'sige.pr.gov' ([Errno 11002] getaddrinfo failed)\"))"
+    }
+  }
+]
