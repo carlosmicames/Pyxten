@@ -14,8 +14,11 @@ from src.utils.address_validator import AddressValidator
 
 def load_uso_types():
     """Load comprehensive uso types from JSON"""
-    data_dir = Path(__file__).parent.parent.parent / "data" / "regulations"
-    with open(data_dir / "uso_types_comprehensive.json", 'r', encoding='utf-8') as f:
+    # Go up 4 levels from src/ui/components/file.py to project root
+    root_dir = Path(__file__).parent.parent.parent.parent
+    data_path = root_dir / "data" / "regulations" / "uso_types_comprehensive.json"
+    
+    with open(data_path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 def detect_regime(municipality: str) -> dict:
@@ -245,7 +248,7 @@ def render_homepage(rules_db, claude_ai=None, model_router=None):
             )
         
         # Optional: Project description
-        with st.expander("➕ Agregar Descripción (Opcional)"):
+        with st.expander("Agregar Descripción (Opcional)"):
             project_description = st.text_area(
                 "Descripción Adicional",
                 placeholder="Ej: Construcción de residencia unifamiliar de 2 niveles...",
@@ -261,7 +264,7 @@ def render_homepage(rules_db, claude_ai=None, model_router=None):
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         validate_button = st.button(
-            "✅ Validar Proyecto Ahora",
+            "Validar Proyecto Ahora",
             type="primary",
             use_container_width=True,
             key="validate_project_btn"
@@ -278,14 +281,14 @@ def render_homepage(rules_db, claude_ai=None, model_router=None):
             descripcion_uso,
             uso_especifico
         ]):
-            st.error("⚠️ Por favor completa todos los campos marcados con *")
+            st.error("Por favor completa todos los campos marcados con *")
         
         elif not st.session_state.get('address_validated', False):
-            st.warning("⚠️ Primero valida la dirección con el botón '🗺️ Validar Dirección'")
+            st.warning("Primero valida la dirección con el botón '🗺️ Validar Dirección'")
         
         else:
             # Run validation
-            with st.spinner("🔍 Validando proyecto contra Tomo 6..."):
+            with st.spinner("Validando proyecto contra Tomo 6..."):
                 
                 # Create validation context
                 validation_context = {
