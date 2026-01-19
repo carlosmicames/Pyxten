@@ -88,18 +88,39 @@ def render_phase1_form(rules_db, claude_ai=None):
     # ====================
     # INFORMACION DEL PROYECTO
     # ====================
-    st.markdown("### Información del Proyecto")
+    st.markdown("### Informacion del Proyecto")
 
     st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
 
-    # ROW 1: Dirección de la Propiedad (left) | Municipio (right)
+    # ====================
+    # 1. DESCRIPCION DEL PROYECTO (PRIMERO)
+    # ====================
+    st.markdown("#### Describe tu Proyecto")
+    
+    project_description = st.text_area(
+        "Que tipo de uso o construccion deseas?",
+        placeholder="Ejemplos:\n"
+                   "- 'Quiero construir una residencia unifamiliar'\n"
+                   "- 'Voy a operar una lavanderia y una oficina'\n"
+                   "- 'Hotel boutique pequeno con restaurante'\n"
+                   "- 'Finca agricola con casa familiar'",
+        height=120,
+        help="Describe tu proyecto de forma natural - el sistema lo interpretara automaticamente",
+        key="project_description"
+    )
+
+    st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
+
+    # ====================
+    # 2. DIRECCION Y MUNICIPIO
+    # ====================
     col1, col2 = st.columns(2)
 
     with col1:
         property_address = st.text_input(
-            "Dirección de la Propiedad *",
+            "Direccion de la Propiedad *",
             placeholder="Ej: Calle Luna 123, Urb. San Patricio",
-            help="Dirección completa de la propiedad",
+            help="Direccion completa de la propiedad",
             key="property_address"
         )
 
@@ -117,10 +138,10 @@ def render_phase1_form(rules_db, claude_ai=None):
     st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
 
     # ====================
-    # BOTÓN VALIDAR DIRECCIÓN
+    # 3. BOTON VALIDAR DIRECCION
     # ====================
     validate_address_btn = st.button(
-        "Validar dirección *",
+        "Validar direccion",
         key="validate_address_btn",
         use_container_width=False
     )
@@ -128,9 +149,9 @@ def render_phase1_form(rules_db, claude_ai=None):
     # Handle address validation
     if validate_address_btn:
         if not property_address or not municipality:
-            st.error("Por favor ingresa la dirección y selecciona el municipio.")
+            st.error("Por favor ingresa la direccion y selecciona el municipio.")
         else:
-            with st.spinner("Validando dirección..."):
+            with st.spinner("Validando direccion..."):
                 validate_address_with_gis(property_address, municipality)
 
     # Show validation warnings if any
@@ -141,22 +162,35 @@ def render_phase1_form(rules_db, claude_ai=None):
     st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
 
     # ====================
-    # COORDENADAS (SOLO SI SE VALIDÓ LA DIRECCIÓN)
+    # 4. COORDENADAS Y CATASTRO (MISMO ROW)
     # ====================
     if st.session_state.validated_coordinates:
         lat, lng = st.session_state.validated_coordinates
         
-        st.success(f"✅ Dirección validada correctamente")
+        st.success("Direccion validada correctamente")
         
-        # Mostrar coordenadas
-        st.text_input(
-            "Coordenadas (Latitud, Longitud)",
-            value=f"{lat:.6f}, {lng:.6f}",
-            disabled=True,
-            help="Usa estas coordenadas para buscar tu propiedad en el mapa MIPR"
-        )
+        # Row con Coordenadas y Catastro
+        col1, col2 = st.columns(2)
         
-        # Botón de abrir mapa
+        with col1:
+            st.text_input(
+                "Coordenadas (Latitud, Longitud)",
+                value=f"{lat:.6f}, {lng:.6f}",
+                disabled=True,
+                help="Usa estas coordenadas para buscar tu propiedad en el mapa MIPR"
+            )
+        
+        with col2:
+            catastro_number = st.text_input(
+                "Catastro (Opcional)",
+                placeholder="Ej: 123-456-789-01",
+                help="Numero de catastro de la propiedad. Puedes encontrarlo en el Mapa MIPR o en tu escritura.",
+                key="catastro_input"
+            )
+        
+        st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
+        
+        # Boton de abrir mapa
         mipr_url = f"https://gis.jp.pr.gov/mipr/?center={lng},{lat}&zoom=18"
         
         st.markdown(f"""
@@ -173,124 +207,87 @@ def render_phase1_form(rules_db, claude_ai=None):
                 width: 100%;
                 margin-bottom: 1rem;
             ">
-                🗺️ Abrir mapa de calificaciones
+                Abrir mapa de calificaciones
             </button>
         </a>
         """, unsafe_allow_html=True)
         
         # Instrucciones
-        with st.expander("📋 Instrucciones - Cómo usar las coordenadas en el mapa"):
+        with st.expander("Instrucciones - Como usar las coordenadas en el mapa"):
             st.markdown(f"""
-            **Sigue estos pasos para identificar tu calificación:**
+            **Sigue estos pasos para identificar tu calificacion:**
             
-            1. **Haz clic** en el botón "Abrir mapa de calificaciones" arriba
-            2. El mapa se abrirá centrado en tu propiedad usando las coordenadas:
+            1. **Haz clic** en el boton "Abrir mapa de calificaciones" arriba
+            2. El mapa se abrira centrado en tu propiedad usando las coordenadas:
                - **Latitud:** {lat:.6f}
                - **Longitud:** {lng:.6f}
-            3. **Identifica tu predio** en el mapa (debería estar en el centro)
-            4. **Haz clic** sobre el predio para ver la información
-            5. **Copia la "Calificación"** que aparece (ejemplo: R-2, C-L, RU-1, etc.)
-            6. **Pega la calificación** en el campo de abajo
+            3. **Identifica tu predio** en el mapa (deberia estar en el centro)
+            4. **Haz clic** sobre el predio para ver la informacion
+            5. **Copia la "Calificacion"** que aparece (ejemplo: R-2, C-L, RU-1, etc.)
+            6. **Selecciona la calificacion** en el dropdown de abajo
             
-            💡 **Tip:** Si el mapa no está centrado exactamente en tu propiedad, usa las coordenadas
-            para buscar manualmente en la barra de búsqueda del mapa MIPR.
+            **Tip:** Si el mapa no esta centrado exactamente en tu propiedad, usa las coordenadas
+            para buscar manualmente en la barra de busqueda del mapa MIPR.
             """)
+    else:
+        # Si no se ha validado, mostrar el campo de catastro como opcional
+        catastro_number = None
 
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
 
     # ====================
-    # CALIFICACIÓN Y DISTRITO DE ZONIFICACIÓN
+    # 5. CALIFICACION/DISTRITO (DROPDOWN CONSOLIDADO)
     # ====================
-    col1, col2 = st.columns(2)
+    st.markdown("#### Calificacion del Predio")
+    
+    zoning_code = ""
+    
+    if municipality:
+        districts = district_service.get_districts_for_municipality(municipality)
 
-    with col1:
-        calificacion_input = st.text_input(
-            "Calificación *",
-            placeholder="Ej: R-2, C-L, I-L, RU-1, etc.",
-            help="Calificación actual del predio según MIPR",
-            key="calificacion_manual"
+        # Create consolidated dropdown options - ELIMINAR DUPLICADOS
+        seen_codes = set()
+        calificacion_options = ["Selecciona una calificacion..."]
+        
+        for d in districts:
+            code = d['code']
+            name = d['name']
+            # Solo agregar si no lo hemos visto antes
+            if code not in seen_codes:
+                seen_codes.add(code)
+                # Formato: "R-2 - Residencial Intermedio"
+                calificacion_options.append(f"{code} - {name}")
+
+        # Info sobre POT si aplica
+        if district_service.is_pot_municipality(municipality):
+            st.caption(f"Nota: {municipality} tiene POT propio. Se mostrara el equivalente RC automaticamente.")
+
+        calificacion_selection = st.selectbox(
+            "Calificacion / Distrito de Zonificacion *",
+            options=calificacion_options,
+            help="Selecciona la calificacion del predio segun aparece en el mapa MIPR",
+            key="calificacion_distrito_dropdown"
         )
 
-        # Validate calificacion if entered
-        zoning_code = ""
-        if calificacion_input and municipality:
-            validation_result = district_service.validate_calificacion(calificacion_input, municipality)
-
-            if validation_result['valid']:
-                if validation_result['is_pot']:
-                    st.success(f"{validation_result['message']} - Equivalente RC: {validation_result['rc_equivalent']}")
-                    zoning_code = validation_result['rc_equivalent']
-                else:
-                    st.info(validation_result['message'])
-                    zoning_code = validation_result['rc_equivalent']
-            else:
-                st.warning(validation_result['message'])
-        elif calificacion_input and not municipality:
-            st.warning("Selecciona un municipio para validar la calificación")
-
-    with col2:
-        # Dropdown de Distrito de Zonificación
-        if municipality:
-            districts = district_service.get_districts_for_municipality(municipality)
-
-            # Create dropdown options - ELIMINAR DUPLICADOS
-            seen_codes = set()
-            district_options = [""]
+        # Extract code and get RC equivalent
+        if calificacion_selection and calificacion_selection != "Selecciona una calificacion...":
+            selected_code = calificacion_selection.split(" - ")[0]
             
-            for d in districts:
-                code = d['code']
-                # Solo agregar si no lo hemos visto antes
-                if code not in seen_codes:
-                    seen_codes.add(code)
-                    district_options.append(f"{code} - {d['name']}")
+            # Get RC equivalent
+            zoning_code = district_service.get_rc_equivalent(selected_code, municipality)
 
+            # Show RC equivalent if POT
             if district_service.is_pot_municipality(municipality):
-                st.caption(f"ℹ️ {municipality} tiene POT propio. Mostrando códigos municipales.")
-
-            district_selection = st.selectbox(
-                "Distrito de Zonificación (alternativa)",
-                options=district_options,
-                help="Selecciona el distrito de zonificación si no ingresaste la calificación manualmente",
-                key="district_dropdown"
-            )
-
-            # Extract code from dropdown if manual calificacion is empty
-            if district_selection and not calificacion_input:
-                dropdown_code = district_selection.split(" - ")[0]
-                # Get RC equivalent
-                zoning_code = district_service.get_rc_equivalent(dropdown_code, municipality)
-
-                # Show RC equivalent if POT
-                if district_service.is_pot_municipality(municipality):
-                    rc_equiv = district_service.get_rc_equivalent(dropdown_code, municipality)
-                    if rc_equiv != dropdown_code:
-                        st.caption(f"Equivalente RC: {rc_equiv}")
-        else:
-            st.info("Selecciona un municipio primero para ver los distritos disponibles")
-
-    st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
-
-    # ====================
-    # DESCRIPCIÓN DEL PROYECTO
-    # ====================
-    st.markdown("### Describe tu Proyecto")
-    
-    project_description = st.text_area(
-        "¿Qué tipo de uso o construcción deseas?",
-        placeholder="Ejemplos:\n"
-                   "• 'Quiero construir una residencia unifamiliar'\n"
-                   "• 'Voy a operar una lavandería y una oficina'\n"
-                   "• 'Hotel boutique pequeño con restaurante'\n"
-                   "• 'Finca agrícola con casa familiar'",
-        height=120,
-        help="Describe tu proyecto de forma natural - el sistema lo interpretará automáticamente",
-        key="project_description"
-    )
+                rc_equiv = district_service.get_rc_equivalent(selected_code, municipality)
+                if rc_equiv != selected_code:
+                    st.info(f"Codigo POT '{selected_code}' equivale a RC: {rc_equiv}")
+    else:
+        st.info("Selecciona un municipio primero para ver las calificaciones disponibles")
 
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
     
     # ====================
-    # BOTÓN DE VALIDAR PROYECTO
+    # 6. BOTON DE VALIDAR PROYECTO
     # ====================
     validate_project_btn = st.button(
         "Validar Proyecto Ahora",
@@ -307,18 +304,18 @@ def render_phase1_form(rules_db, claude_ai=None):
             return
         
         if not property_address or not municipality:
-            st.error("Por favor ingresa la dirección y selecciona el municipio.")
+            st.error("Por favor ingresa la direccion y selecciona el municipio.")
             return
         
         if not zoning_code:
-            st.error("Por favor ingresa o selecciona el distrito de zonificación.")
+            st.error("Por favor selecciona la calificacion/distrito de zonificacion.")
             return
         
         # Interpret project type using AI if available
         use_code = interpret_project_type(project_description, rules_db, claude_ai)
         
         if not use_code:
-            st.error("No se pudo interpretar el tipo de proyecto. Por favor proporciona más detalles.")
+            st.error("No se pudo interpretar el tipo de proyecto. Por favor proporciona mas detalles.")
             return
         
         # Run validation
@@ -335,6 +332,10 @@ def render_phase1_form(rules_db, claude_ai=None):
             if "error" in result:
                 st.error(f"Error: {result['error']}")
             else:
+                # Add catastro to result if provided
+                if catastro_number:
+                    result['catastro'] = catastro_number
+                
                 # Add to history
                 SessionManager.add_validation_to_history(result)
                 
@@ -385,7 +386,7 @@ def validate_address_with_gis(address: str, municipality: str):
                 st.session_state.validation_warnings.append(addr_result['warning'])
         else:
             st.session_state.validation_warnings.append(
-                f"Dirección no encontrada: {addr_result.get('error', 'Error desconocido')}."
+                f"Direccion no encontrada: {addr_result.get('error', 'Error desconocido')}."
             )
             
     except ValueError as e:
@@ -394,7 +395,7 @@ def validate_address_with_gis(address: str, municipality: str):
         )
     except Exception as e:
         st.session_state.validation_warnings.append(
-            f"Error validando dirección: {str(e)}."
+            f"Error validando direccion: {str(e)}."
         )
 
 
@@ -438,15 +439,15 @@ def interpret_project_type(description: str, rules_db, claude_ai=None) -> str:
                 for u in use_types
             ])
             
-            prompt = f"""Basándote en la siguiente descripción de proyecto, determina el código de uso más apropiado.
+            prompt = f"""Basandote en la siguiente descripcion de proyecto, determina el codigo de uso mas apropiado.
 
-Descripción del proyecto:
+Descripcion del proyecto:
 {description}
 
-Códigos de uso disponibles:
+Codigos de uso disponibles:
 {use_list}
 
-Responde SOLO con el código de uso (ej: COM-RETAIL). Sin explicación."""
+Responde SOLO con el codigo de uso (ej: COM-RETAIL). Sin explicacion."""
             
             response = claude_ai.generate(prompt, max_tokens=50)
             use_code = response.strip()
@@ -466,39 +467,39 @@ Responde SOLO con el código de uso (ej: COM-RETAIL). Sin explicación."""
 def render_pcoc_upgrade_cta():
     """Renders upgrade CTA for PCOC validation"""
     st.info("""
-    ### Validación PCOC Completa
+    ### Validacion PCOC Completa
 
-    Esta funcionalidad está disponible en el Plan Profesional.
+    Esta funcionalidad esta disponible en el Plan Profesional.
 
     **Incluye:**
-    - Validación completa de documentos PCOC
-    - Planos arquitectónicos (planta, elevaciones, conjunto)
+    - Validacion completa de documentos PCOC
+    - Planos arquitectonicos (planta, elevaciones, conjunto)
     - Certificaciones (registral, AAA, ambiental)
     - Formularios OGPe
     - Coherencia entre documentos
-    - Cumplimiento con Reglamento Conjunto Sección 2.1.9
+    - Cumplimiento con Reglamento Conjunto Seccion 2.1.9
     """)
 
 
 def render_pcoc_quick_access(model_router):
     """Quick access to PCOC validation for professional users"""
     st.info("""
-    ### Validación PCOC Completa (Próximamente)
+    ### Validacion PCOC Completa (Proximamente)
 
-    **Validación completa incluye:**
-    - Planos arquitectónicos (planta, elevaciones, conjunto)
+    **Validacion completa incluye:**
+    - Planos arquitectonicos (planta, elevaciones, conjunto)
     - Certificaciones (registral, AAA, ambiental)
     - Formularios OGPe
     - Coherencia entre documentos
-    - Cumplimiento con Reglamento Conjunto Sección 2.1.9
+    - Cumplimiento con Reglamento Conjunto Seccion 2.1.9
     """)
 
 
 def render_validation_results(result, property_address, municipality):
-    """Renderiza los resultados de validación"""
+    """Renderiza los resultados de validacion"""
     
     st.markdown("---")
-    st.markdown("## Resultados de Validación")
+    st.markdown("## Resultados de Validacion")
     
     # Big viability result
     if result["viable"]:
@@ -507,10 +508,10 @@ def render_validation_results(result, property_address, municipality):
                     border: 3px solid #10b981; border-radius: 20px;
                     padding: 2.5rem; text-align: center; margin: 2rem 0;">
             <div style="font-size: 2rem; font-weight: 800; color: #065f46;">
-                ✅ PROYECTO VIABLE
+                PROYECTO VIABLE
             </div>
             <div style="font-size: 1.1rem; color: #047857; margin-top: 0.5rem;">
-                Tu proyecto cumple con los requisitos de zonificación
+                Tu proyecto cumple con los requisitos de zonificacion
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -520,10 +521,10 @@ def render_validation_results(result, property_address, municipality):
                     border: 3px solid #ef4444; border-radius: 20px;
                     padding: 2.5rem; text-align: center; margin: 2rem 0;">
             <div style="font-size: 2rem; font-weight: 800; color: #991b1b;">
-                ⚠️ PROYECTO NO VIABLE
+                PROYECTO NO VIABLE
             </div>
             <div style="font-size: 1.1rem; color: #b91c1c; margin-top: 0.5rem;">
-                Se requieren cambios para cumplir con la zonificación
+                Se requieren cambios para cumplir con la zonificacion
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -531,6 +532,10 @@ def render_validation_results(result, property_address, municipality):
     # Summary
     st.markdown("### Resumen")
     st.info(result["summary"])
+    
+    # Show catastro if available
+    if result.get('catastro'):
+        st.markdown(f"**Numero de Catastro:** {result['catastro']}")
     
     # Detailed validation results
     st.markdown("### Validaciones Detalladas")
@@ -541,7 +546,7 @@ def render_validation_results(result, property_address, municipality):
             <div style="background: #ecfdf5; padding: 1.25rem; border-left: 4px solid #10b981;
                         border-radius: 12px; margin: 1rem 0;">
                 <div style="font-weight: 700; color: #065f46; margin-bottom: 0.5rem;">
-                    ✅ {val_result['rule_name']} - CUMPLE
+                    {val_result['rule_name']} - CUMPLE
                 </div>
                 <div style="color: #047857;">
                     {val_result['message']}
@@ -556,7 +561,7 @@ def render_validation_results(result, property_address, municipality):
             <div style="background: #fef2f2; padding: 1.25rem; border-left: 4px solid #ef4444;
                         border-radius: 12px; margin: 1rem 0;">
                 <div style="font-weight: 700; color: #991b1b; margin-bottom: 0.5rem;">
-                    ❌ {val_result['rule_name']} - NO CUMPLE
+                    {val_result['rule_name']} - NO CUMPLE
                 </div>
                 <div style="color: #b91c1c;">
                     {val_result['message']}
@@ -568,7 +573,7 @@ def render_validation_results(result, property_address, municipality):
             """, unsafe_allow_html=True)
     
     # Next steps
-    st.markdown("### Próximos Pasos Recomendados")
+    st.markdown("### Proximos Pasos Recomendados")
     for i, step in enumerate(result["next_steps"], 1):
         st.markdown(f"**{i}.** {step}")
     
@@ -582,7 +587,7 @@ def render_validation_results(result, property_address, municipality):
     with col1:
         pdf_bytes = ReportGenerator.generate_pdf(result)
         st.download_button(
-            label="📥 Descargar Reporte PDF",
+            label="Descargar Reporte PDF",
             data=pdf_bytes,
             file_name=f"pyxten_validacion_{municipality.replace(' ', '_').lower()}.pdf",
             mime="application/pdf",
@@ -590,7 +595,7 @@ def render_validation_results(result, property_address, municipality):
         )
     
     with col2:
-        if st.button("💾 Guardar en Proyecto", use_container_width=True):
+        if st.button("Guardar en Proyecto", use_container_width=True):
             current_project = SessionManager.get_current_project()
             if current_project:
                 SessionManager.add_report_to_project(
@@ -598,7 +603,7 @@ def render_validation_results(result, property_address, municipality):
                     'fase1',
                     pdf_bytes
                 )
-                st.success(f"✅ Reporte guardado en '{current_project['name']}'")
+                st.success(f"Reporte guardado en '{current_project['name']}'")
             else:
                 st.warning("Primero crea un proyecto para guardar el reporte")
                 if st.button("Crear Proyecto", key="create_proj_cta"):
