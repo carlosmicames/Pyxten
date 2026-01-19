@@ -3,6 +3,8 @@ from src.database.rules_loader import RulesDatabase
 from src.validators.zoning_validator import ZoningValidator
 from src.utils.report_generator import ReportGenerator
 from src.services.session_manager import SessionManager
+from src.services.district_service import DistrictService
+from src.ui.components.gis_map_widget import render_gis_map_link
 
 def render_homepage(rules_db, claude_ai=None, model_router=None):
     """
@@ -43,19 +45,19 @@ def render_phase1_form(rules_db, claude_ai=None):
     """
     Formulario de validacion Fase 1 con nuevo layout simplificado.
     """
-    
+
     # Check validation limit
     if not SessionManager.can_validate():
         st.error("""
         ### Has alcanzado el limite de validaciones gratuitas
-        
+
         Actualiza a Plan Profesional para:
         - Validaciones Fase 1 ilimitadas
         - 10 validaciones PCOC/mes
         - Memorial Explicativo generado con IA
         - Guardar y gestionar proyectos
         """)
-        
+
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             if st.button("Ver Planes y Actualizar", type="primary", use_container_width=True):
@@ -82,6 +84,19 @@ def render_phase1_form(rules_db, claude_ai=None):
     if 'validated_coordinates' not in st.session_state:
         st.session_state.validated_coordinates = None
 
+    # Initialize district service
+    district_service = DistrictService()
+
+    # ====================
+    # GIS MAP LINK SECTION
+    # ====================
+    render_gis_map_link()
+
+    st.markdown("### Informacion del Proyecto")
+    st.markdown("Completa los datos basandote en la calificacion del mapa")
+
+    st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
+
     # ROW 1: Describe tu proyecto (full width)
     project_description = st.text_area(
         "Describe tu proyecto",
@@ -90,23 +105,23 @@ def render_phase1_form(rules_db, claude_ai=None):
         help="Describe el uso que deseas darle a la propiedad. La IA interpretara el tipo de proyecto.",
         key="project_description"
     )
-    
+
     st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
-    
-    # ROW 2: Direccion (left) | Municipio (right)
+
+    # ROW 2: Direccion (full width)
+    property_address = st.text_input(
+        "Direccion de la Propiedad *",
+        placeholder="Ej: Calle Luna 123, Urb. San Patricio",
+        help="Direccion completa de la propiedad",
+        key="property_address"
+    )
+
+    # ROW 3: Municipio (left) | Catastro (right)
     col1, col2 = st.columns(2)
-    
+
     with col1:
-        property_address = st.text_input(
-            "Direccion de la Propiedad",
-            placeholder="Ej: Calle Luna 123, Urb. San Patricio",
-            help="Direccion completa de la propiedad",
-            key="property_address"
-        )
-    
-    with col2:
         municipality = st.selectbox(
-            "Municipio",
+            "Municipio *",
             options=["Selecciona un municipio..."] + rules_db.get_municipalities(),
             help="Selecciona el municipio donde se ubica la propiedad",
             key="municipality_select"
@@ -114,16 +129,103 @@ def render_phase1_form(rules_db, claude_ai=None):
         # Clean up selection
         if municipality == "Selecciona un municipio...":
             municipality = ""
-    
-    # ROW 3: Validar direccion button (left aligned)
+
+    with col2:
+        catastro_number = st.text_input(
+            "Numero de Catastro (Opcional)",
+            value=st.session_state.validated_catastro,
+            placeholder="Ej: 123-456-789-01",
+            help="Numero de catastro de la propiedad. Puedes encontrarlo en el Mapa MIPR o en tu escritura.",
+            key="catastro_input"
+        )
+
+    # ====================
+    # CALIFICACION SECTION (Manual input with validation)
+    # ====================
+    st.markdown("#### Calificacion del Predio")
+    st.info("""
+    **Como encontrar tu calificacion?**
+    1. Usa el Mapa MIPR arriba
+    2. Busca tu propiedad
+    3. Haz clic en el predio
+    4. Copia la "Calificacion" (ej: R-2, C-L, etc.)
+    """)
+
+    calificacion_input = st.text_input(
+        "Calificacion / Zonificacion *",
+        placeholder="Ej: R-2, C-L, I-L, etc.",
+        help="Calificacion actual del predio segun MIPR",
+        key="calificacion_manual"
+    )
+
+    # Validate calificacion if entered
+    zoning_code = ""
+    if calificacion_input and municipality:
+        validation_result = district_service.validate_calificacion(calificacion_input, municipality)
+
+        if validation_result['valid']:
+            if validation_result['is_pot']:
+                st.success(f"{validation_result['message']} - Equivalente RC: {validation_result['rc_equivalent']}")
+                zoning_code = validation_result['rc_equivalent']
+            else:
+                st.info(validation_result['message'])
+                zoning_code = validation_result['rc_equivalent']
+        else:
+            st.warning(validation_result['message'])
+    elif calificacion_input and not municipality:
+        st.warning("Selecciona un municipio para validar la calificacion")
+
+    # ====================
+    # POT-AWARE DISTRICT DROPDOWN
+    # ====================
+    st.markdown("#### O selecciona de la lista:")
+
+    if municipality:
+        districts = district_service.get_districts_for_municipality(municipality)
+
+        # Create dropdown options
+        district_options = [""] + [
+            f"{d['code']} - {d['name']}"
+            for d in districts
+        ]
+
+        if district_service.is_pot_municipality(municipality):
+            st.caption(f"{municipality} tiene POT propio. Mostrando codigos municipales.")
+
+        district_selection = st.selectbox(
+            "Distrito de Zonificacion (alternativa)",
+            options=district_options,
+            help="Selecciona el distrito de zonificacion si no ingresaste la calificacion manualmente",
+            key="district_dropdown"
+        )
+
+        # Extract code from dropdown if manual calificacion is empty
+        if district_selection and not calificacion_input:
+            dropdown_code = district_selection.split(" - ")[0]
+            # Get RC equivalent
+            zoning_code = district_service.get_rc_equivalent(dropdown_code, municipality)
+
+            # Show RC equivalent if POT
+            if district_service.is_pot_municipality(municipality):
+                rc_equiv = district_service.get_rc_equivalent(dropdown_code, municipality)
+                if rc_equiv != dropdown_code:
+                    st.caption(f"Equivalente RC: {rc_equiv}")
+    else:
+        st.info("Selecciona un municipio primero para ver los distritos disponibles")
+
+    # ====================
+    # ADDRESS VALIDATION BUTTON
+    # ====================
+    st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
+
     col1, col2, col3 = st.columns([1, 1, 1])
     with col1:
         validate_address_btn = st.button(
-            "Validar direccion",
+            "Validar direccion (opcional)",
             key="validate_address_btn",
             use_container_width=True
         )
-    
+
     # Handle address validation
     if validate_address_btn:
         if not property_address or not municipality:
@@ -131,56 +233,15 @@ def render_phase1_form(rules_db, claude_ai=None):
         else:
             with st.spinner("Validando direccion y consultando servicios GIS..."):
                 validate_address_with_gis(property_address, municipality)
-    
+
     # Show validation warnings if any
     if st.session_state.validation_warnings:
         for warning in st.session_state.validation_warnings:
             st.warning(warning)
-    
-    st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
-    
-    # ROW 4: Numero de Catastro (left) | Distrito de Calificacion (right)
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # Catastro - auto-filled or manual entry
-        catastro_value = st.session_state.validated_catastro
-        catastro = st.text_input(
-            "Numero de Catastro",
-            value=catastro_value,
-            placeholder="Se llenara automaticamente al validar direccion",
-            help="Numero de catastro de la propiedad (CRIM)",
-            key="catastro_input"
-        )
-    
-    with col2:
-        # Zoning - auto-filled or manual selection
-        zoning_options = [""] + [
-            f"{d['code']} - {d['name_es']}"
-            for d in rules_db.get_zoning_districts()
-        ]
-        
-        # Find index of validated zoning if exists
-        default_index = 0
-        if st.session_state.validated_zoning_code:
-            for i, opt in enumerate(zoning_options):
-                if opt.startswith(st.session_state.validated_zoning_code):
-                    default_index = i
-                    break
-        
-        zoning_selection = st.selectbox(
-            "Distrito de Calificacion (Zonificacion)",
-            options=zoning_options,
-            index=default_index,
-            help="Distrito de zonificacion de la propiedad - se llena automaticamente al validar",
-            key="zoning_select"
-        )
-        
-        zoning_code = zoning_selection.split(" - ")[0] if zoning_selection else ""
-    
+
     # Show success message if address was validated
     if st.session_state.address_validated:
-        st.success("Direccion validada correctamente. Catastro y zonificacion actualizados.")
+        st.success("Direccion validada correctamente.")
     
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
     
@@ -234,7 +295,7 @@ def render_phase1_form(rules_db, claude_ai=None):
                 st.error(f"Error: {result['error']}")
             else:
                 # Add catastro to result
-                result['catastro'] = catastro or st.session_state.validated_catastro
+                result['catastro'] = catastro_number or st.session_state.validated_catastro
                 
                 # Add to history
                 SessionManager.add_validation_to_history(result)

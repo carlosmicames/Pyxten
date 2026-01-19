@@ -1,26 +1,75 @@
-# Página de proyectos activos
+# Pagina de proyectos activos
 import streamlit as st
+import os
 from src.services.session_manager import SessionManager
-import json
+
+
+def _normalize_project(project: dict) -> dict:
+    """Normalize project data from Supabase to match SessionManager format"""
+    normalized = project.copy()
+
+    # Handle date field differences
+    if 'created_at' in normalized and 'created_date' not in normalized:
+        normalized['created_date'] = normalized['created_at']
+
+    if 'updated_at' in normalized and 'last_modified' not in normalized:
+        normalized['last_modified'] = normalized['updated_at']
+
+    # Ensure required fields have defaults
+    if 'status' not in normalized:
+        normalized['status'] = 'En Progreso'
+
+    if 'documents' not in normalized:
+        normalized['documents'] = {}
+
+    if 'reports' not in normalized:
+        normalized['reports'] = []
+
+    return normalized
+
 
 def render_active_projects_page():
-    """Página dedicada para ver y gestionar proyectos activos"""
-    
+    """Pagina dedicada para ver y gestionar proyectos activos"""
+
     SessionManager.initialize()
-    
+
     # Header
     st.markdown("""
     <div style="text-align: center; padding: 2rem 0 1rem 0;">
         <h1 style="font-size: 2.5rem; font-weight: 800; color: #111827;">
-            📁 Proyectos Activos
+            Proyectos Activos
         </h1>
         <p style="font-size: 1.1rem; color: #6b7280;">
             Gestiona y monitorea todos tus proyectos
         </p>
     </div>
     """, unsafe_allow_html=True)
-    
-    projects = SessionManager.get_all_projects()
+
+    # Try to get projects from Supabase first
+    projects = None
+    use_supabase = False
+
+    if os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_KEY") and st.session_state.get('user'):
+        try:
+            from src.services.supabase_client import SupabaseService
+
+            supabase = SupabaseService()
+            user_id = st.session_state.user.id
+            supabase_projects = supabase.get_user_projects(user_id)
+
+            if supabase_projects is not None:
+                # Convert to dict format expected by the rest of the page
+                # and normalize field names
+                projects = {p['id']: _normalize_project(p) for p in supabase_projects}
+                use_supabase = True
+
+        except Exception as e:
+            st.warning(f"Error conectando a Supabase: {e}")
+            projects = None
+
+    # Fallback to SessionManager
+    if projects is None:
+        projects = SessionManager.get_all_projects()
     
     if not projects:
         # Empty state

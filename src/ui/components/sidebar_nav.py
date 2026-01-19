@@ -1,5 +1,6 @@
 # Sidebar Navigation Component - Clean, minimal styling
 import streamlit as st
+import os
 from src.services.session_manager import SessionManager
 
 def render_sidebar():
@@ -118,7 +119,48 @@ def render_sidebar():
         ):
             st.session_state.current_page = 'pricing'
             st.rerun()
-        
+
+        # Chatbot - only show if OpenAI API is configured
+        if os.getenv("OPENAI_API_KEY"):
+            if st.button(
+                "Asistente IA",
+                key="nav_chatbot",
+                use_container_width=True,
+                type="primary" if current_page == "chatbot" else "secondary"
+            ):
+                st.session_state.current_page = 'chatbot'
+                st.rerun()
+
+        # Admin - only show for admin users
+        user = st.session_state.get('user')
+        if user:
+            try:
+                from src.ui.pages.admin import is_admin
+                if is_admin(user.id):
+                    if st.button(
+                        "Admin",
+                        key="nav_admin",
+                        use_container_width=True,
+                        type="primary" if current_page == "admin" else "secondary"
+                    ):
+                        st.session_state.current_page = 'admin'
+                        st.rerun()
+            except Exception:
+                pass
+
+        st.markdown("<hr style='margin: 0.75rem 0; border: none; border-top: 1px solid #e5e7eb;'>", unsafe_allow_html=True)
+
+        # User authentication section
+        if os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_KEY"):
+            user = st.session_state.get('user')
+            if user:
+                st.caption(f"Usuario: {user.email}")
+                if st.button("Cerrar Sesion", key="sidebar_logout", use_container_width=True):
+                    from src.ui.components.auth import logout
+                    logout()
+            else:
+                st.caption("No autenticado")
+
         st.markdown("<hr style='margin: 0.75rem 0; border: none; border-top: 1px solid #e5e7eb;'>", unsafe_allow_html=True)
         
         # Validaciones restantes - widget compacto

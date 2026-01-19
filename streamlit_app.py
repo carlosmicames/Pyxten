@@ -31,6 +31,7 @@ from src.ui.components.dashboard import render_dashboard
 from src.ui.pages.pricing import render_pricing_page
 from src.ui.pages.new_project import render_new_project_page
 from src.ui.pages.active_projects import render_active_projects_page
+from src.ui.components.auth import render_auth_page, check_authentication
 
 # Phase 2 (PCOC) - Separate page
 FASE2_AVAILABLE = False
@@ -169,6 +170,11 @@ except Exception as e:
 # Initialize session
 SessionManager.initialize()
 
+# Check authentication (only enforced if Supabase is configured)
+if not check_authentication():
+    render_auth_page()
+    st.stop()
+
 # Render Sidebar
 render_sidebar()
 
@@ -202,21 +208,31 @@ try:
         if not FASE2_AVAILABLE:
             st.error("### Fase 2 (PCOC) No Disponible")
             st.warning("""
-            Para habilitar la validación PCOC completa, necesitas:
-            
-            1. **OPENAI_API_KEY** - Para análisis de planos
-            2. **ANTHROPIC_API_KEY** - Para análisis de documentos
-            
+            Para habilitar la validacion PCOC completa, necesitas:
+
+            1. **OPENAI_API_KEY** - Para analisis de planos
+            2. **ANTHROPIC_API_KEY** - Para analisis de documentos
+
             Verifica tu archivo `.env`
             """)
         elif not model_router:
             st.error("### Error Inicializando PCOC")
-            st.info("Revisa el sidebar para más detalles")
+            st.info("Revisa el sidebar para mas detalles")
         else:
             render_pcoc_validator(rules_db, model_router)
-    
+
+    elif current_page == 'chatbot':
+        # AI Chatbot for regulations
+        from src.ui.pages.chatbot import render_chatbot_page
+        render_chatbot_page()
+
+    elif current_page == 'admin':
+        # Admin dashboard
+        from src.ui.pages.admin import render_admin_dashboard
+        render_admin_dashboard()
+
     else:
-        st.warning(f"Página '{current_page}' no encontrada")
+        st.warning(f"Pagina '{current_page}' no encontrada")
         st.session_state.current_page = 'homepage'
         st.rerun()
 

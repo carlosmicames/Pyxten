@@ -1,5 +1,6 @@
-# Página para crear nuevo proyecto
+# Pagina para crear nuevo proyecto
 import streamlit as st
+import os
 from src.database.rules_loader import RulesDatabase
 from src.services.session_manager import SessionManager
 
@@ -91,23 +92,52 @@ def render_new_project_page(rules_db):
         
         if submitted:
             if all([project_name, project_address, project_municipality]):
-                project_id = SessionManager.create_project(
-                    name=project_name,
-                    address=project_address,
-                    municipality=project_municipality
-                )
-                
-                # Update with additional info
-                updates = {}
-                if project_type:
-                    updates['project_type'] = project_type
-                if project_description:
-                    updates['notes'] = project_description
-                
-                if updates:
-                    SessionManager.update_project(project_id, updates)
-                
-                st.success(f"✅ Proyecto '{project_name}' creado exitosamente!")
+                # Try Supabase first, fall back to SessionManager
+                project_id = None
+
+                if os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_KEY") and st.session_state.get('user'):
+                    try:
+                        from src.services.supabase_client import SupabaseService
+
+                        supabase = SupabaseService()
+                        user_id = st.session_state.user.id
+
+                        project_data = {
+                            'name': project_name,
+                            'address': project_address,
+                            'municipality': project_municipality,
+                            'project_type': project_type if project_type else None,
+                            'notes': project_description if project_description else None
+                        }
+
+                        project = supabase.create_project(user_id, project_data)
+                        if project:
+                            project_id = project['id']
+                            st.session_state.current_project_id = project_id
+
+                    except Exception as e:
+                        st.warning(f"Error con Supabase, usando almacenamiento local: {e}")
+                        project_id = None
+
+                # Fallback to SessionManager
+                if not project_id:
+                    project_id = SessionManager.create_project(
+                        name=project_name,
+                        address=project_address,
+                        municipality=project_municipality
+                    )
+
+                    # Update with additional info
+                    updates = {}
+                    if project_type:
+                        updates['project_type'] = project_type
+                    if project_description:
+                        updates['notes'] = project_description
+
+                    if updates:
+                        SessionManager.update_project(project_id, updates)
+
+                st.success(f"Proyecto '{project_name}' creado exitosamente!")
                 
                 st.markdown("""
                 <div style="background: #ecfdf5; border-left: 4px solid #10b981; 
