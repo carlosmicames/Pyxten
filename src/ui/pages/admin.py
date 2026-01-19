@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 
 # IMPORTANT: Set your admin user ID here after creating account
-ADMIN_USERS = [1378101c-24a6-470f-ad05-cfe98847a46f]
+ADMIN_USERS = [d83ae184-d418-44cb-9951-bb8e9decd571]
     # Add your Supabase user ID here after signup
     # Example: "abc123-def456-ghi789"
 

@@ -101,7 +101,6 @@ def render_signup_form():
                     else:
                         st.error(f"Error: {error_msg}")
 
-
 def check_authentication() -> bool:
     """Check if user is authenticated"""
 
@@ -111,10 +110,23 @@ def check_authentication() -> bool:
     if 'user' not in st.session_state:
         st.session_state.user = None
 
-    # Check for Supabase credentials - if not set, allow unauthenticated use
+    # Check for Supabase credentials
     if not os.getenv("SUPABASE_URL") or not os.getenv("SUPABASE_KEY"):
-        # No Supabase configured - allow unauthenticated access
         return True
+
+    # NEW: Check for email confirmation callback
+    try:
+        from src.services.supabase_client import SupabaseService
+        supabase = SupabaseService()
+        
+        # Get session from URL parameters
+        session = supabase.client.auth.get_session()
+        if session:
+            st.session_state.user = session.user
+            st.session_state.authenticated = True
+            return True
+    except:
+        pass
 
     return st.session_state.authenticated
 
