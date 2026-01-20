@@ -16,7 +16,7 @@ class DistrictService:
 
         Returns:
             [
-                {"code": "R-2", "name": "Residencial Intermedio", "is_pot": False},
+                {"code": "R-2", "name": "Residencial Intermedio", "rc_equivalents": ["R-I"], "is_pot": False},
                 ...
             ]
         """
@@ -28,8 +28,8 @@ class DistrictService:
             return [
                 {
                     "code": d['code'],
-                    "name": d.get('name', d['code']),
-                    "rc_equivalent": d['rc_equivalent'],
+                    "name": d.get('description', d['code']),
+                    "rc_equivalents": d.get('rc_equivalents', [d['code']]),
                     "is_pot": True
                 }
                 for d in pot_districts
@@ -41,25 +41,38 @@ class DistrictService:
                 {
                     "code": d['code'],
                     "name": d['name'],
-                    "rc_equivalent": d['code'],
+                    "rc_equivalents": [d['code']],
                     "is_pot": False
                 }
                 for d in self.pot_data['standard_rc_districts']
             ]
 
     def get_rc_equivalent(self, pot_code: str, municipality: str) -> str:
-        """Converts POT code to RC equivalent"""
+        """Converts POT code to RC equivalent (returns first equivalent for backwards compatibility)"""
+        equivalents = self.get_rc_equivalents(pot_code, municipality)
+        return equivalents[0] if equivalents else pot_code
 
+    def get_rc_equivalents(self, pot_code: str, municipality: str) -> List[str]:
+        """
+        Returns ALL RC equivalences for a POT code as a list.
+
+        Args:
+            pot_code: The POT district code (e.g., "CUT-8")
+            municipality: The municipality name
+
+        Returns:
+            List of RC equivalent codes (e.g., ["R-U", "R-C", "C-L", "C-I", "D-G", "S-H"])
+        """
         if municipality not in self.pot_data['municipalities_with_pot']:
-            return pot_code  # Already RC
+            return [pot_code]  # Already RC code
 
         pot_districts = self.pot_data['pot_districts'][municipality]['districts']
 
         for district in pot_districts:
             if district['code'] == pot_code:
-                return district['rc_equivalent']
+                return district.get('rc_equivalents', [pot_code])
 
-        return pot_code  # Fallback
+        return [pot_code]  # Fallback
 
     def is_pot_municipality(self, municipality: str) -> bool:
         """Check if municipality has POT"""
@@ -77,7 +90,7 @@ class DistrictService:
             {
                 "valid": bool,
                 "is_pot": bool,
-                "rc_equivalent": str or None,
+                "rc_equivalents": List[str] or None,
                 "message": str
             }
         """
@@ -88,7 +101,7 @@ class DistrictService:
             return {
                 "valid": False,
                 "is_pot": False,
-                "rc_equivalent": None,
+                "rc_equivalents": None,
                 "message": "Por favor ingresa una calificacion"
             }
 
@@ -102,7 +115,7 @@ class DistrictService:
                     return {
                         "valid": True,
                         "is_pot": True,
-                        "rc_equivalent": district['rc_equivalent'],
+                        "rc_equivalents": district.get('rc_equivalents', [district['code']]),
                         "message": f"Calificacion POT valida para {municipality}"
                     }
 
@@ -112,14 +125,14 @@ class DistrictService:
                 return {
                     "valid": True,
                     "is_pot": False,
-                    "rc_equivalent": cal,
+                    "rc_equivalents": [cal],
                     "message": f"Codigo RC estandar detectado. {municipality} tiene POT - considera usar codigo POT."
                 }
 
             return {
                 "valid": False,
                 "is_pot": False,
-                "rc_equivalent": None,
+                "rc_equivalents": None,
                 "message": f"Calificacion '{calificacion}' no encontrada en POT de {municipality}. Verifica el codigo."
             }
 
@@ -131,13 +144,13 @@ class DistrictService:
                 return {
                     "valid": True,
                     "is_pot": False,
-                    "rc_equivalent": cal,
+                    "rc_equivalents": [cal],
                     "message": "Calificacion RC valida"
                 }
             else:
                 return {
                     "valid": False,
                     "is_pot": False,
-                    "rc_equivalent": None,
+                    "rc_equivalents": None,
                     "message": f"Calificacion '{calificacion}' no reconocida. Verifica el codigo."
                 }

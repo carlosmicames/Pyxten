@@ -177,20 +177,28 @@ def render_new_validation_card():
         st.markdown("""
         <div style="text-align: center; padding: 1rem;">
             <p style="font-size: 1.1rem; color: #374151;">
-                ¿Listo para comenzar tu proyecto?
+                Listo para validar tu proyecto?
             </p>
         </div>
         """, unsafe_allow_html=True)
-        
-        # Botón "Comienza ahora" que navega a Proyectos
+
+        # Boton "Nueva Validacion" que navega a homepage (validacion)
         if st.button(
-            "Comienza ahora",
-            key="start_project_now",
+            "Nueva Validacion",
+            key="start_validation_now",
             type="primary",
             use_container_width=True
         ):
-            st.session_state.current_page = 'projects'
-            st.session_state.show_projects_menu = True
+            st.session_state.current_page = 'homepage'
+            st.rerun()
+
+        # Boton "Mis Proyectos" que navega a proyectos
+        if st.button(
+            "Mis Proyectos",
+            key="go_to_projects",
+            use_container_width=True
+        ):
+            st.session_state.current_page = 'active_projects'
             st.rerun()
     else:
         st.warning("""

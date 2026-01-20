@@ -29,7 +29,6 @@ from src.ui.components.sidebar_nav import render_sidebar
 from src.ui.components.homepage_validation import render_homepage
 from src.ui.components.dashboard import render_dashboard
 from src.ui.pages.pricing import render_pricing_page
-from src.ui.pages.new_project import render_new_project_page
 from src.ui.pages.active_projects import render_active_projects_page
 from src.ui.components.auth import render_auth_page, check_authentication
 
@@ -182,8 +181,8 @@ render_sidebar()
 current_page = SessionManager.get_current_page()
 
 if not current_page:
-    current_page = 'homepage'
-    st.session_state.current_page = 'homepage'
+    current_page = 'dashboard'
+    st.session_state.current_page = 'dashboard'
 
 # Route to pages
 try:
@@ -193,10 +192,7 @@ try:
     
     elif current_page == 'dashboard':
         render_dashboard()
-    
-    elif current_page == 'new_project':
-        render_new_project_page(rules_db)
-    
+
     elif current_page == 'active_projects':
         render_active_projects_page()
     

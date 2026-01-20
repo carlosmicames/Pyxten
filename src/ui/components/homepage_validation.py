@@ -100,11 +100,8 @@ def render_phase1_form(rules_db, claude_ai=None):
     project_description = st.text_area(
         "Que tipo de uso o construccion deseas?",
         placeholder="Ejemplos:\n"
-                   "- 'Quiero construir una residencia unifamiliar'\n"
-                   "- 'Voy a operar una lavanderia y una oficina'\n"
-                   "- 'Hotel boutique pequeno con restaurante'\n"
-                   "- 'Finca agricola con casa familiar'",
-        height=120,
+                   "- 'Quiero construir una residencia unifamiliar'\n",
+        height=60,
         help="Describe tu proyecto de forma natural - el sistema lo interpretara automaticamente",
         key="project_description"
     )
@@ -248,15 +245,14 @@ def render_phase1_form(rules_db, claude_ai=None):
         # Create consolidated dropdown options - ELIMINAR DUPLICADOS
         seen_codes = set()
         calificacion_options = ["Selecciona una calificacion..."]
-        
+
         for d in districts:
             code = d['code']
-            name = d['name']
             # Solo agregar si no lo hemos visto antes
             if code not in seen_codes:
                 seen_codes.add(code)
-                # Formato: "R-2 - Residencial Intermedio"
-                calificacion_options.append(f"{code} - {name}")
+                # Formato: Solo el codigo (sin descripcion)
+                calificacion_options.append(code)
 
         # Info sobre POT si aplica
         if district_service.is_pot_municipality(municipality):
@@ -269,18 +265,26 @@ def render_phase1_form(rules_db, claude_ai=None):
             key="calificacion_distrito_dropdown"
         )
 
-        # Extract code and get RC equivalent
+        # Extract code and get RC equivalents
         if calificacion_selection and calificacion_selection != "Selecciona una calificacion...":
-            selected_code = calificacion_selection.split(" - ")[0]
-            
-            # Get RC equivalent
-            zoning_code = district_service.get_rc_equivalent(selected_code, municipality)
+            selected_code = calificacion_selection
 
-            # Show RC equivalent if POT
+            # Get all RC equivalents
+            rc_equivalents = district_service.get_rc_equivalents(selected_code, municipality)
+
+            # Use first equivalent for backwards compatibility
+            zoning_code = rc_equivalents[0] if rc_equivalents else selected_code
+
+            # Store equivalents in session state for validation
+            st.session_state.rc_equivalents = rc_equivalents
+
+            # Show RC equivalents if POT and different from original code
             if district_service.is_pot_municipality(municipality):
-                rc_equiv = district_service.get_rc_equivalent(selected_code, municipality)
-                if rc_equiv != selected_code:
-                    st.info(f"Codigo POT '{selected_code}' equivale a RC: {rc_equiv}")
+                if rc_equivalents and rc_equivalents[0] != selected_code:
+                    if len(rc_equivalents) > 1:
+                        st.info(f"Codigo POT '{selected_code}' equivale a RC: {', '.join(rc_equivalents)}")
+                    else:
+                        st.info(f"Codigo POT '{selected_code}' equivale a RC: {rc_equivalents[0]}")
     else:
         st.info("Selecciona un municipio primero para ver las calificaciones disponibles")
 
@@ -321,12 +325,16 @@ def render_phase1_form(rules_db, claude_ai=None):
         # Run validation
         with st.spinner("Validando proyecto..."):
             validator = ZoningValidator(rules_db)
-            
+
+            # Get RC equivalents from session state or use zoning_code
+            rc_equivalents = st.session_state.get('rc_equivalents', [zoning_code])
+
             result = validator.validate_project(
                 property_address=property_address,
                 municipality=municipality,
                 zoning_code=zoning_code,
-                proposed_use_code=use_code
+                proposed_use_code=use_code,
+                rc_equivalents=rc_equivalents
             )
             
             if "error" in result:
@@ -528,15 +536,11 @@ def render_validation_results(result, property_address, municipality):
             </div>
         </div>
         """, unsafe_allow_html=True)
-    
-    # Summary
-    st.markdown("### Resumen")
-    st.info(result["summary"])
-    
+
     # Show catastro if available
     if result.get('catastro'):
         st.markdown(f"**Numero de Catastro:** {result['catastro']}")
-    
+
     # Detailed validation results
     st.markdown("### Validaciones Detalladas")
     
@@ -571,14 +575,9 @@ def render_validation_results(result, property_address, municipality):
                 </div>
             </div>
             """, unsafe_allow_html=True)
-    
-    # Next steps
-    st.markdown("### Proximos Pasos Recomendados")
-    for i, step in enumerate(result["next_steps"], 1):
-        st.markdown(f"**{i}.** {step}")
-    
+
     st.markdown("---")
-    
+
     # Download report section
     st.markdown("### Descargar Reporte")
     
@@ -596,16 +595,109 @@ def render_validation_results(result, property_address, municipality):
     
     with col2:
         if st.button("Guardar en Proyecto", use_container_width=True):
-            current_project = SessionManager.get_current_project()
-            if current_project:
-                SessionManager.add_report_to_project(
-                    current_project['id'],
-                    'fase1',
-                    pdf_bytes
-                )
-                st.success(f"Reporte guardado en '{current_project['name']}'")
-            else:
-                st.warning("Primero crea un proyecto para guardar el reporte")
-                if st.button("Crear Proyecto", key="create_proj_cta"):
-                    st.session_state.current_page = 'new_project'
+            st.session_state.show_save_modal = True
+            st.session_state.validation_to_save = {
+                'result': result,
+                'pdf': pdf_bytes,
+                'address': property_address,
+                'municipality': municipality
+            }
+            st.rerun()
+
+    # Save modal
+    if st.session_state.get('show_save_modal'):
+        render_save_modal()
+
+
+def render_save_modal():
+    """Render modal to save validation to a project folder"""
+    st.markdown("### Guardar validacion en proyecto")
+
+    # Get user's folders/projects
+    projects = SessionManager.get_all_projects()
+
+    tab1, tab2 = st.tabs(["Carpeta existente", "Nueva carpeta"])
+
+    with tab1:
+        if not projects:
+            st.info("No tienes carpetas de proyecto. Crea una en la pestana 'Nueva carpeta'.")
+        else:
+            project_options = {p['name']: p['id'] for p in projects.values()}
+            selected_project = st.selectbox(
+                "Selecciona carpeta",
+                options=list(project_options.keys()),
+                key="select_existing_folder"
+            )
+
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Guardar aqui", type="primary", use_container_width=True, key="save_to_existing"):
+                    if selected_project:
+                        project_id = project_options[selected_project]
+                        validation_data = st.session_state.validation_to_save
+
+                        # Add report to project
+                        SessionManager.add_report_to_project(
+                            project_id,
+                            'fase1',
+                            validation_data['pdf']
+                        )
+
+                        # Update project with validation result
+                        SessionManager.update_project(project_id, {
+                            'phase1_completed': True,
+                            'phase1_result': validation_data['result']
+                        })
+
+                        st.success(f"Validacion guardada en '{selected_project}'")
+                        st.session_state.show_save_modal = False
+                        st.rerun()
+
+            with col2:
+                if st.button("Cancelar", use_container_width=True, key="cancel_save_existing"):
+                    st.session_state.show_save_modal = False
                     st.rerun()
+
+    with tab2:
+        new_folder_name = st.text_input(
+            "Nombre de la nueva carpeta",
+            placeholder="Ej: Cliente XYZ - Residencial",
+            key="new_folder_name_input"
+        )
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Crear y Guardar", type="primary", use_container_width=True, key="create_and_save"):
+                if new_folder_name:
+                    validation_data = st.session_state.validation_to_save
+
+                    # Create new project/folder
+                    project_id = SessionManager.create_project(
+                        name=new_folder_name,
+                        address=validation_data['address'],
+                        municipality=validation_data['municipality']
+                    )
+
+                    # Add report to project
+                    SessionManager.add_report_to_project(
+                        project_id,
+                        'fase1',
+                        validation_data['pdf']
+                    )
+
+                    # Update project with validation result
+                    SessionManager.update_project(project_id, {
+                        'phase1_completed': True,
+                        'phase1_result': validation_data['result']
+                    })
+
+                    st.success(f"Carpeta '{new_folder_name}' creada y validacion guardada")
+                    st.session_state.show_save_modal = False
+                    st.rerun()
+                else:
+                    st.error("Por favor ingresa un nombre para la carpeta")
+
+        with col2:
+            if st.button("Cancelar", use_container_width=True, key="cancel_save_new"):
+                st.session_state.show_save_modal = False
+                st.rerun()

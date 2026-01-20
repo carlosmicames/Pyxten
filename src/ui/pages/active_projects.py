@@ -37,10 +37,10 @@ def render_active_projects_page():
     st.markdown("""
     <div style="text-align: center; padding: 2rem 0 1rem 0;">
         <h1 style="font-size: 2.5rem; font-weight: 800; color: #111827;">
-            Proyectos Activos
+            Proyectos
         </h1>
         <p style="font-size: 1.1rem; color: #6b7280;">
-            Gestiona y monitorea todos tus proyectos
+            Gestiona y monitorea tus proyectos y validaciones
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -70,29 +70,37 @@ def render_active_projects_page():
     # Fallback to SessionManager
     if projects is None:
         projects = SessionManager.get_all_projects()
-    
+
+    # Add "Nueva Carpeta" button at the top
+    col1, col2, col3 = st.columns([2, 1, 1])
+    with col1:
+        if st.button("+ Nueva Carpeta", type="primary", key="create_new_folder_btn"):
+            st.session_state.show_create_folder_modal = True
+            st.rerun()
+
+    # Create folder modal
+    if st.session_state.get('show_create_folder_modal'):
+        render_create_folder_modal()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
     if not projects:
         # Empty state
         st.markdown("""
-        <div style="background: white; padding: 3rem; border-radius: 16px; 
+        <div style="background: white; padding: 3rem; border-radius: 16px;
                     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); text-align: center;
                     max-width: 600px; margin: 2rem auto;">
-            <div style="font-size: 4rem; margin-bottom: 1rem;">📂</div>
+            <div style="font-size: 4rem; margin-bottom: 1rem;"></div>
             <h2 style="color: #374151; margin-bottom: 1rem;">
-                No tienes proyectos todavía
+                No tienes proyectos todavia
             </h2>
             <p style="color: #6b7280; font-size: 1.1rem; margin-bottom: 2rem;">
-                Crea tu primer proyecto para empezar a organizar tus validaciones
+                Usa el boton "+ Nueva Carpeta" arriba para crear tu primer proyecto,
+                o realiza una validacion y guardala en un nuevo proyecto.
             </p>
         </div>
         """, unsafe_allow_html=True)
-        
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            if st.button("➕ Crear Mi Primer Proyecto", type="primary", use_container_width=True):
-                st.session_state.current_page = 'new_project'
-                st.rerun()
-        
+
         return
     
     # Stats bar
@@ -172,8 +180,8 @@ def render_active_projects_page():
         )
     
     with col3:
-        if st.button("➕ Nuevo Proyecto", use_container_width=True):
-            st.session_state.current_page = 'new_project'
+        if st.button("+ Nuevo Proyecto", use_container_width=True, key="new_project_btn_inline"):
+            st.session_state.show_create_folder_modal = True
             st.rerun()
     
     st.markdown("<br>", unsafe_allow_html=True)
@@ -370,3 +378,64 @@ def render_full_project_details(project):
                     )
         else:
             st.info("No hay reportes generados para este proyecto")
+
+
+def render_create_folder_modal():
+    """Render modal to create a new project folder"""
+    st.markdown("### Crear Nueva Carpeta")
+
+    with st.form("create_folder_form"):
+        folder_name = st.text_input(
+            "Nombre de la carpeta *",
+            placeholder="Ej: Cliente ABC - Proyecto Residencial",
+            help="Nombre descriptivo para identificar el proyecto"
+        )
+
+        folder_address = st.text_input(
+            "Direccion (opcional)",
+            placeholder="Ej: Calle Luna 123, Urb. San Patricio",
+            help="Direccion de la propiedad principal"
+        )
+
+        from src.database.rules_loader import RulesDatabase
+        rules_db = RulesDatabase()
+
+        folder_municipality = st.selectbox(
+            "Municipio (opcional)",
+            options=[""] + rules_db.get_municipalities(),
+            help="Municipio donde se ubica la propiedad"
+        )
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            submitted = st.form_submit_button(
+                "Crear Carpeta",
+                type="primary",
+                use_container_width=True
+            )
+
+        with col2:
+            cancel = st.form_submit_button(
+                "Cancelar",
+                use_container_width=True
+            )
+
+        if submitted:
+            if folder_name:
+                # Create project folder using SessionManager
+                project_id = SessionManager.create_project(
+                    name=folder_name,
+                    address=folder_address if folder_address else "",
+                    municipality=folder_municipality if folder_municipality else ""
+                )
+
+                st.success(f"Carpeta '{folder_name}' creada exitosamente")
+                st.session_state.show_create_folder_modal = False
+                st.rerun()
+            else:
+                st.error("Por favor ingresa un nombre para la carpeta")
+
+        if cancel:
+            st.session_state.show_create_folder_modal = False
+            st.rerun()

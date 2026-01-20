@@ -69,9 +69,9 @@ def render_sidebar():
         # Navigation Links - sin emojis, texto limpio
         current_page = SessionManager.get_current_page()
         
-        # Validacion Fase 1
+        # Nueva Validacion
         if st.button(
-            "Validacion Fase 1",
+            "Nueva Validacion",
             key="nav_homepage",
             use_container_width=True,
             type="primary" if current_page == "homepage" else "secondary"
@@ -88,21 +88,11 @@ def render_sidebar():
         ):
             st.session_state.current_page = 'dashboard'
             st.rerun()
-        
-        # Crear Nuevo Proyecto
-        if st.button(
-            "Crear Nuevo Proyecto",
-            key="nav_new_project",
-            use_container_width=True,
-            type="primary" if current_page == "new_project" else "secondary"
-        ):
-            st.session_state.current_page = 'new_project'
-            st.rerun()
-        
-        # Proyectos Activos
+
+        # Proyectos
         active_count = len(SessionManager.get_active_projects())
         if st.button(
-            f"Proyectos Activos ({active_count})",
+            f"Proyectos ({active_count})",
             key="nav_active_projects",
             use_container_width=True,
             type="primary" if current_page == "active_projects" else "secondary"
