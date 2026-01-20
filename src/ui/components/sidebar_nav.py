@@ -141,12 +141,18 @@ def render_sidebar():
         st.markdown("<hr style='margin: 0.75rem 0; border: none; border-top: 1px solid #e5e7eb;'>", unsafe_allow_html=True)
 
         # User authentication section
-        if os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_KEY"):
+        from src.ui.components.auth import is_supabase_configured, logout
+
+        if is_supabase_configured():
             user = st.session_state.get('user')
             if user:
-                st.caption(f"Usuario: {user.email}")
+                st.markdown(f"""
+                <div style="padding: 0.5rem; background: #f0fdf4; border-radius: 6px; margin-bottom: 0.5rem;">
+                    <div style="font-size: 0.75rem; color: #059669; font-weight: 600;">Usuario</div>
+                    <div style="font-size: 0.85rem; color: #374151; word-break: break-all;">{user.email}</div>
+                </div>
+                """, unsafe_allow_html=True)
                 if st.button("Cerrar Sesion", key="sidebar_logout", use_container_width=True):
-                    from src.ui.components.auth import logout
                     logout()
             else:
                 st.caption("No autenticado")

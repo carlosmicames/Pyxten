@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 from src.database.rules_loader import RulesDatabase
 from src.validators.zoning_validator import ZoningValidator
 from src.utils.report_generator import ReportGenerator
@@ -6,12 +7,45 @@ from src.services.session_manager import SessionManager
 from src.services.district_service import DistrictService
 from src.ui.components.gis_map_widget import render_gis_map_link
 
+
+def get_user_id() -> str:
+    """Get current authenticated user ID"""
+    user = st.session_state.get('user')
+    if user:
+        return user.id
+    return None
+
+
+def save_validation_to_supabase(validation_result: dict, project_description: str, project_id: str = None):
+    """Save validation to Supabase for persistence"""
+    user_id = get_user_id()
+    if not user_id:
+        return None
+
+    try:
+        from src.services.supabase_client import SupabaseService
+        supabase = SupabaseService()
+
+        validation_data = {
+            'type': 'fase1',
+            'result': validation_result,
+            'project_description': project_description,
+            'project_id': project_id
+        }
+
+        saved = supabase.create_validation(user_id, validation_data)
+        return saved
+    except Exception as e:
+        st.warning(f"Error saving validation to database: {e}")
+        return None
+
+
 def render_homepage(rules_db, claude_ai=None, model_router=None):
     """
     Renderiza la pagina principal con el nuevo layout simplificado.
     """
     SessionManager.initialize()
-    
+
     # Header principal - sin emojis
     st.markdown("""
     <div style="text-align: center; padding: 2rem 0 1.5rem 0;">
@@ -23,16 +57,16 @@ def render_homepage(rules_db, claude_ai=None, model_router=None):
         </p>
     </div>
     """, unsafe_allow_html=True)
-    
+
     # Tabs sin emojis
     tab1, tab2 = st.tabs([
         "Validacion Rapida (Zonificacion)",
         "Validacion PCOC Completa"
     ])
-    
+
     with tab1:
         render_phase1_form(rules_db, claude_ai)
-    
+
     with tab2:
         user_plan = st.session_state.get('user_plan', 'professional')
         if user_plan == 'free':
@@ -45,7 +79,7 @@ def render_phase1_form(rules_db, claude_ai=None):
     """
     Formulario de validacion Fase 1 con nuevo layout simplificado.
     """
-    
+
     # Check validation limit
     if not SessionManager.can_validate():
         st.error("""
@@ -94,12 +128,12 @@ def render_phase1_form(rules_db, claude_ai=None):
     # 1. DESCRIPCION DEL PROYECTO (PRIMERO)
     # ====================
     st.markdown("#### Describe tu Proyecto")
-    
+
     property_description = st.text_area(
         "Que tipo de uso o construccion deseas?",
         placeholder="Ejemplos:\n"
                    "- 'Quiero construir una residencia unifamiliar'\n",
-        height=30,  # FIXED: Reduced from 60 to 30
+        height=30,
         help="Describe tu proyecto de forma natural - el sistema lo interpretara automaticamente",
         key="project_description"
     )
@@ -161,12 +195,12 @@ def render_phase1_form(rules_db, claude_ai=None):
     # ====================
     if st.session_state.validated_coordinates:
         lat, lng = st.session_state.validated_coordinates
-        
+
         st.success("Direccion validada correctamente")
-        
+
         # Row con Coordenadas y Catastro
         col1, col2 = st.columns(2)
-        
+
         with col1:
             st.text_input(
                 "Coordenadas (Latitud, Longitud)",
@@ -174,13 +208,13 @@ def render_phase1_form(rules_db, claude_ai=None):
                 disabled=True,
                 help="Usa estas coordenadas para buscar tu propiedad en el mapa MIPR"
             )
-        
+
         with col2:
-            # FIXED: Auto-fill catastro from session state
+            # Auto-fill catastro from session state
             catastro_value = st.session_state.get('catastro_number', '')
             if catastro_value == "No disponible":
                 catastro_value = ""  # Clear the "No disponible" text for user input
-            
+
             catastro_number = st.text_input(
                 "Catastro",
                 value=catastro_value,
@@ -188,16 +222,16 @@ def render_phase1_form(rules_db, claude_ai=None):
                 help="Numero de catastro auto-detectado. Puedes editarlo si es incorrecto.",
                 key="catastro_input"
             )
-            
+
             # Show caveat if catastro was auto-filled
             if st.session_state.get('catastro_number') and st.session_state.catastro_number != "No disponible":
-                st.caption("⚠️ Debe verificar esta información para confirmar su exactitud.")
-        
+                st.caption("Debe verificar esta informacion para confirmar su exactitud.")
+
         st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
-        
+
         # Boton de abrir mapa
         mipr_url = f"https://gis.jp.pr.gov/mipr/?center={lng},{lat}&zoom=18"
-        
+
         st.markdown(f"""
         <a href="{mipr_url}" target="_blank" style="text-decoration: none;">
             <button style="
@@ -216,12 +250,12 @@ def render_phase1_form(rules_db, claude_ai=None):
             </button>
         </a>
         """, unsafe_allow_html=True)
-        
+
         # Instrucciones
         with st.expander("Instrucciones - Como usar las coordenadas en el mapa"):
             st.markdown(f"""
             **Sigue estos pasos para identificar tu calificacion:**
-            
+
             1. **Haz clic** en el boton "Abrir mapa de calificaciones" arriba
             2. El mapa se abrira centrado en tu propiedad usando las coordenadas:
                - **Latitud:** {lat:.6f}
@@ -230,7 +264,7 @@ def render_phase1_form(rules_db, claude_ai=None):
             4. **Haz clic** sobre el predio para ver la informacion
             5. **Copia la "Calificacion"** que aparece (ejemplo: R-2, C-L, RU-1, etc.)
             6. **Selecciona la calificacion** en el dropdown de abajo
-            
+
             **Tip:** Si el mapa no esta centrado exactamente en tu propiedad, usa las coordenadas
             para buscar manualmente en la barra de busqueda del mapa MIPR.
             """)
@@ -244,9 +278,9 @@ def render_phase1_form(rules_db, claude_ai=None):
     # 5. CALIFICACION/DISTRITO (DROPDOWN CONSOLIDADO)
     # ====================
     st.markdown("#### Calificacion del Predio")
-    
+
     zoning_code = ""
-    
+
     if municipality:
         districts = district_service.get_districts_for_municipality(municipality)
 
@@ -297,7 +331,7 @@ def render_phase1_form(rules_db, claude_ai=None):
         st.info("Selecciona un municipio primero para ver las calificaciones disponibles")
 
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
-    
+
     # ====================
     # 6. BOTON DE VALIDAR PROYECTO
     # ====================
@@ -307,29 +341,29 @@ def render_phase1_form(rules_db, claude_ai=None):
         use_container_width=True,
         key="validate_project_btn"
     )
-    
+
     # Handle project validation
     if validate_project_btn:
         # Validate required fields
         if not property_description:
             st.error("Por favor describe tu proyecto.")
             return
-        
+
         if not property_address or not municipality:
             st.error("Por favor ingresa la direccion y selecciona el municipio.")
             return
-        
+
         if not zoning_code:
             st.error("Por favor selecciona la calificacion/distrito de zonificacion.")
             return
-        
+
         # Interpret project type using AI if available
         use_code = interpret_project_type(property_description, rules_db, claude_ai)
-        
+
         if not use_code:
             st.error("No se pudo interpretar el tipo de proyecto. Por favor proporciona mas detalles.")
             return
-        
+
         # Run validation
         with st.spinner("Validando proyecto..."):
             validator = ZoningValidator(rules_db)
@@ -344,29 +378,31 @@ def render_phase1_form(rules_db, claude_ai=None):
                 proposed_use_code=use_code,
                 rc_equivalents=rc_equivalents
             )
-            
+
             if "error" in result:
                 st.error(f"Error: {result['error']}")
             else:
-                # FIXED: Add catastro to result for DISPLAY only (not PDF)
                 # Store catastro separately for UI display
                 display_catastro = catastro_number if catastro_number else st.session_state.get('catastro_number', 'No disponible')
-                
+
                 # Add metadata to result
                 result['property_address'] = property_address
                 result['municipality'] = municipality
                 result['project_description'] = property_description
-                
+
                 # Store PDF data separately
                 pdf_bytes = ReportGenerator.generate_pdf(result)
                 st.session_state.validation_pdf_data = pdf_bytes
-                
-                # Add to history with description and PDF
+
+                # Add to session history with description and PDF
                 history_entry = result.copy()
                 history_entry['project_description'] = property_description
                 history_entry['pdf_data'] = pdf_bytes
                 SessionManager.add_validation_to_history(history_entry)
-                
+
+                # SAVE TO SUPABASE for multi-user persistence
+                save_validation_to_supabase(result, property_description)
+
                 # Add to current project if exists
                 current_project = SessionManager.get_current_project()
                 if current_project:
@@ -377,7 +413,7 @@ def render_phase1_form(rules_db, claude_ai=None):
                             'phase1_result': result
                         }
                     )
-                
+
                 # Show results with catastro for display
                 render_validation_results(result, property_address, municipality, display_catastro)
 
@@ -387,37 +423,36 @@ def validate_address_with_gis(address: str, municipality: str):
     Validates address using Google Maps to get coordinates.
     Then fetches catastro number from ArcGIS/CRIM.
     """
-    import os
-    
+
     # Reset previous state
     st.session_state.validation_warnings = []
     st.session_state.address_validated = False
     st.session_state.catastro_number = ""
-    
+
     # Step 1: Validate address with Google Maps to get coordinates
     coordinates = None
-    
+
     try:
         from src.utils.address_validator import AddressValidator
-        
+
         address_validator = AddressValidator()
         addr_result = address_validator.validate_address(
             address=address,
             municipality=municipality
         )
-        
+
         if addr_result.get('valid'):
             coordinates = (addr_result['latitude'], addr_result['longitude'])
             st.session_state.validated_coordinates = coordinates
             st.session_state.address_validated = True
-            
+
             if addr_result.get('warning'):
                 st.session_state.validation_warnings.append(addr_result['warning'])
         else:
             st.session_state.validation_warnings.append(
                 f"Direccion no encontrada: {addr_result.get('error', 'Error desconocido')}."
             )
-            
+
     except ValueError as e:
         st.session_state.validation_warnings.append(
             f"Google Maps API no disponible: {str(e)}."
@@ -431,21 +466,21 @@ def validate_address_with_gis(address: str, municipality: str):
     if coordinates:
         try:
             from src.services.arcgis_pr_client import ArcGISPRClient
-            
+
             arcgis_client = ArcGISPRClient()
             parcel_result = arcgis_client.get_parcel_info(coordinates[0], coordinates[1])
-            
+
             if parcel_result.get('success') and parcel_result.get('catastro'):
                 st.session_state.catastro_number = parcel_result['catastro']
-                st.success(f"✅ Número de catastro detectado: {parcel_result['catastro']}")
+                st.success(f"Numero de catastro detectado: {parcel_result['catastro']}")
             else:
                 st.session_state.catastro_number = "No disponible"
-                st.info("ℹ️ No se pudo obtener el número de catastro automáticamente. Puedes ingresarlo manualmente.")
-                
+                st.info("No se pudo obtener el numero de catastro automaticamente. Puedes ingresarlo manualmente.")
+
         except Exception as e:
             st.session_state.catastro_number = "No disponible"
             st.session_state.validation_warnings.append(
-                f"No se pudo obtener número de catastro: {str(e)}"
+                f"No se pudo obtener numero de catastro: {str(e)}"
             )
     else:
         st.session_state.catastro_number = "No disponible"
@@ -457,7 +492,7 @@ def interpret_project_type(description: str, rules_db, claude_ai=None) -> str:
     Uses AI if available, falls back to keyword matching.
     """
     description_lower = description.lower()
-    
+
     # Keyword-based mapping for common use types
     keyword_mappings = {
         "RES-SF": ["unifamiliar", "casa", "vivienda", "residencia", "hogar"],
@@ -470,17 +505,17 @@ def interpret_project_type(description: str, rules_db, claude_ai=None) -> str:
         "AGR-FARM": ["finca", "agricola", "cultivo", "siembra", "granja"],
         "MIX-USE": ["mixto", "residencial y comercial", "mixed"]
     }
-    
+
     # Check for lavanderia specifically (common use case)
     if "lavanderia" in description_lower or "laundry" in description_lower:
         return "COM-RETAIL"
-    
+
     # Try keyword matching first
     for use_code, keywords in keyword_mappings.items():
         for keyword in keywords:
             if keyword in description_lower:
                 return use_code
-    
+
     # If AI is available, use it for more sophisticated interpretation
     if claude_ai:
         try:
@@ -490,7 +525,7 @@ def interpret_project_type(description: str, rules_db, claude_ai=None) -> str:
                 f"- {u['code']}: {u['name_es']} - {u.get('description_es', '')}"
                 for u in use_types
             ])
-            
+
             prompt = f"""Basandote en la siguiente descripcion de proyecto, determina el codigo de uso mas apropiado.
 
 Descripcion del proyecto:
@@ -500,18 +535,18 @@ Codigos de uso disponibles:
 {use_list}
 
 Responde SOLO con el codigo de uso (ej: COM-RETAIL). Sin explicacion."""
-            
+
             response = claude_ai.generate(prompt, max_tokens=50)
             use_code = response.strip()
-            
+
             # Validate that it's a real code
             valid_codes = [u['code'] for u in use_types]
             if use_code in valid_codes:
                 return use_code
-                
+
         except Exception as e:
             st.warning(f"Error usando IA para interpretar proyecto: {str(e)}")
-    
+
     # Default fallback
     return "COM-RETAIL"
 
@@ -549,10 +584,10 @@ def render_pcoc_quick_access(model_router):
 
 def render_validation_results(result, property_address, municipality, catastro_display):
     """Renderiza los resultados de validacion"""
-    
+
     st.markdown("---")
     st.markdown("## Resultados de Validacion")
-    
+
     # Big viability result
     if result["viable"]:
         st.markdown("""
@@ -581,18 +616,18 @@ def render_validation_results(result, property_address, municipality, catastro_d
         </div>
         """, unsafe_allow_html=True)
 
-    # FIXED: Show catastro in UI with caveat (NOT in PDF)
+    # Show catastro in UI with caveat (NOT in PDF)
     if catastro_display and catastro_display != "No disponible":
         st.markdown(f"""
         <div style="background: #f3f4f6; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
             <div style="font-weight: 600; color: #374151; margin-bottom: 0.5rem;">
-                📍 Número de Catastro
+                Numero de Catastro
             </div>
             <div style="font-size: 1.1rem; color: #10b981; font-weight: 700;">
                 {catastro_display}
             </div>
             <div style="font-size: 0.85rem; color: #ef4444; margin-top: 0.5rem;">
-                ⚠️ Debe verificar esta información para confirmar su exactitud.
+                Debe verificar esta informacion para confirmar su exactitud.
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -600,17 +635,17 @@ def render_validation_results(result, property_address, municipality, catastro_d
         st.markdown("""
         <div style="background: #fef2f2; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
             <div style="font-weight: 600; color: #991b1b;">
-                📍 Número de Catastro: No disponible
+                Numero de Catastro: No disponible
             </div>
             <div style="font-size: 0.85rem; color: #6b7280; margin-top: 0.5rem;">
-                No se pudo obtener el número de catastro para esta ubicación.
+                No se pudo obtener el numero de catastro para esta ubicacion.
             </div>
         </div>
         """, unsafe_allow_html=True)
 
     # Detailed validation results
     st.markdown("### Validaciones Detalladas")
-    
+
     for val_result in result["validation_results"]:
         if val_result["passed"]:
             st.markdown(f"""
@@ -647,15 +682,15 @@ def render_validation_results(result, property_address, municipality, catastro_d
 
     # Download report section
     st.markdown("### Descargar Reporte")
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
-        # FIXED: PDF already generated and stored in session
+        # PDF already generated and stored in session
         pdf_bytes = st.session_state.get('validation_pdf_data')
         if pdf_bytes:
             st.download_button(
-                label="📥 Descargar Reporte PDF",
+                label="Descargar Reporte PDF",
                 data=pdf_bytes,
                 file_name=f"pyxten_validacion_{municipality.replace(' ', '_').lower()}.pdf",
                 mime="application/pdf",
@@ -664,7 +699,7 @@ def render_validation_results(result, property_address, municipality, catastro_d
             )
         else:
             st.error("Error generando PDF")
-    
+
     with col2:
         if st.button("Guardar en Proyecto", use_container_width=True):
             st.session_state.show_save_modal = True
@@ -685,8 +720,23 @@ def render_save_modal():
     """Render modal to save validation to a project folder"""
     st.markdown("### Guardar validacion en proyecto")
 
-    # Get user's folders/projects
-    projects = SessionManager.get_all_projects()
+    # Get user's folders/projects from Supabase if authenticated
+    user_id = get_user_id()
+    projects = {}
+
+    if user_id:
+        try:
+            from src.services.supabase_client import SupabaseService
+            supabase = SupabaseService()
+            supabase_projects = supabase.get_user_projects(user_id)
+            if supabase_projects:
+                projects = {p['id']: p for p in supabase_projects}
+        except Exception:
+            pass
+
+    # Fallback to session projects
+    if not projects:
+        projects = SessionManager.get_all_projects()
 
     tab1, tab2 = st.tabs(["Carpeta existente", "Nueva carpeta"])
 
@@ -743,12 +793,31 @@ def render_save_modal():
                 if new_folder_name:
                     validation_data = st.session_state.validation_to_save
 
-                    # Create new project/folder
+                    # Create new project/folder in session
                     project_id = SessionManager.create_project(
                         name=new_folder_name,
                         address=validation_data['address'],
                         municipality=validation_data['municipality']
                     )
+
+                    # ALSO save to Supabase if authenticated
+                    if user_id:
+                        try:
+                            from src.services.supabase_client import SupabaseService
+                            supabase = SupabaseService()
+
+                            project_data = {
+                                'name': new_folder_name,
+                                'address': validation_data['address'],
+                                'municipality': validation_data['municipality'],
+                                'catastro_number': None,
+                                'calificacion': None,
+                                'zoning_code': None
+                            }
+
+                            supabase.create_project(user_id, project_data)
+                        except Exception as e:
+                            st.warning(f"Proyecto creado localmente. Error al guardar en base de datos: {e}")
 
                     # Add report to project
                     SessionManager.add_report_to_project(

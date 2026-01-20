@@ -1,4 +1,5 @@
 import os
+import streamlit as st
 from typing import Dict, List, Optional
 from datetime import datetime
 
@@ -6,11 +7,23 @@ class SupabaseService:
     """Supabase database service"""
 
     def __init__(self):
-        url = os.getenv("SUPABASE_URL")
-        key = os.getenv("SUPABASE_KEY")
+        # Try st.secrets first (Streamlit Cloud), then env vars
+        url = None
+        key = None
+
+        try:
+            url = st.secrets.get("SUPABASE_URL")
+            key = st.secrets.get("SUPABASE_KEY")
+        except Exception:
+            pass
+
+        if not url:
+            url = os.getenv("SUPABASE_URL")
+        if not key:
+            key = os.getenv("SUPABASE_KEY")
 
         if not url or not key:
-            raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set in environment variables")
+            raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set in environment variables or st.secrets")
 
         try:
             from supabase import create_client, Client
@@ -67,14 +80,20 @@ class SupabaseService:
     # ========================================================================
 
     def create_validation(self, user_id: str, validation_data: Dict) -> Dict:
-        """Create a validation record"""
+        """Create a validation record with full result storage for PDF regeneration"""
+
+        # Extract key fields for easy querying
+        result_obj = validation_data.get('result', {})
 
         data = {
             "user_id": user_id,
             "project_id": validation_data.get('project_id'),
-            "validation_type": validation_data['type'],  # 'fase1' or 'pcoc'
-            "result": validation_data['result'],  # JSONB
-            "viable": validation_data['result'].get('viable', False)
+            "validation_type": validation_data.get('type', 'fase1'),  # 'fase1' or 'pcoc'
+            "result": result_obj,  # JSONB - full result for PDF regeneration
+            "viable": result_obj.get('viable', False),
+            "project_description": validation_data.get('project_description', ''),
+            "property_address": result_obj.get('property_address', ''),
+            "municipality": result_obj.get('municipality', '')
         }
 
         result = self.client.table('validations').insert(data).execute()
@@ -91,6 +110,12 @@ class SupabaseService:
 
         result = self.client.table('validations').select("*").eq('project_id', project_id).order('created_at', desc=True).execute()
         return result.data if result.data else []
+
+    def get_validation_by_id(self, validation_id: str) -> Optional[Dict]:
+        """Get a specific validation by ID"""
+
+        result = self.client.table('validations').select("*").eq('id', validation_id).execute()
+        return result.data[0] if result.data else None
 
     # ========================================================================
     # USAGE TRACKING

@@ -2,6 +2,33 @@ import streamlit as st
 import os
 
 
+def get_supabase_credentials():
+    """Get Supabase credentials from st.secrets (Streamlit Cloud) or env vars"""
+    url = None
+    key = None
+
+    # Try st.secrets first (Streamlit Cloud)
+    try:
+        url = st.secrets.get("SUPABASE_URL")
+        key = st.secrets.get("SUPABASE_KEY")
+    except Exception:
+        pass
+
+    # Fallback to environment variables
+    if not url:
+        url = os.getenv("SUPABASE_URL")
+    if not key:
+        key = os.getenv("SUPABASE_KEY")
+
+    return url, key
+
+
+def is_supabase_configured() -> bool:
+    """Check if Supabase credentials are available"""
+    url, key = get_supabase_credentials()
+    return bool(url and key)
+
+
 def render_auth_page():
     """Render login/signup page"""
 
@@ -101,6 +128,7 @@ def render_signup_form():
                     else:
                         st.error(f"Error: {error_msg}")
 
+
 def check_authentication() -> bool:
     """Check if user is authenticated"""
 
@@ -111,21 +139,21 @@ def check_authentication() -> bool:
         st.session_state.user = None
 
     # Check for Supabase credentials
-    if not os.getenv("SUPABASE_URL") or not os.getenv("SUPABASE_KEY"):
-        return True
+    if not is_supabase_configured():
+        return True  # Skip auth if Supabase not configured
 
-    # NEW: Check for email confirmation callback
+    # Check for existing session
     try:
         from src.services.supabase_client import SupabaseService
         supabase = SupabaseService()
-        
-        # Get session from URL parameters
+
+        # Get session from URL parameters (email confirmation callback)
         session = supabase.client.auth.get_session()
         if session:
             st.session_state.user = session.user
             st.session_state.authenticated = True
             return True
-    except:
+    except Exception:
         pass
 
     return st.session_state.authenticated
