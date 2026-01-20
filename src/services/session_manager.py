@@ -138,6 +138,16 @@ class SessionManager:
         """Agrega una validación al historial"""
         # Agregar timestamp
         validation_result['timestamp'] = datetime.now().isoformat()
+        # Add project_description if not present
+        if 'project_description' not in validation_result:
+            validation_result['project_description'] = validation_result.get(
+                'description',
+                validation_result.get('use_description', 'Sin descripción')
+            )
+        
+        # Store PDF data if present in session
+        if 'validation_pdf_data' in st.session_state:
+            validation_result['pdf_data'] = st.session_state.validation_pdf_data
         
         # Agregar al historial (mantener últimos 10)
         st.session_state.validation_history.insert(0, validation_result)

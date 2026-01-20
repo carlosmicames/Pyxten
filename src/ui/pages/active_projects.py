@@ -430,7 +430,26 @@ def render_create_folder_modal():
                     municipality=folder_municipality if folder_municipality else ""
                 )
 
-                st.success(f"Carpeta '{folder_name}' creada exitosamente")
+               # Save to Supabase if available
+                if os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_KEY") and st.session_state.get('user'):
+                    try:
+                        from src.services.supabase_client import SupabaseService
+                        supabase = SupabaseService()
+                        
+                        project_data = {
+                            'name': folder_name,
+                            'address': folder_address if folder_address else "",
+                            'municipality': folder_municipality if folder_municipality else "",
+                            'catastro_number': None,
+                            'calificacion': None,
+                            'zoning_code': None
+                        }
+                        
+                        supabase.create_project(st.session_state.user.id, project_data)
+                    except Exception as e:
+                        st.warning(f"Proyecto creado localmente. Error al guardar en base de datos: {e}")
+                
+                st.success(f"✅ Carpeta '{folder_name}' creada exitosamente")
                 st.session_state.show_create_folder_modal = False
                 st.rerun()
             else:

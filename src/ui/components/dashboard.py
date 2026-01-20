@@ -1,4 +1,4 @@
-# Dashboard Component - FINAL: Sin emojis, con botón Comienza ahora
+# Dashboard Component - CORRECTED with all fixes
 import streamlit as st
 from src.services.session_manager import SessionManager
 from datetime import datetime
@@ -15,7 +15,6 @@ def render_dashboard():
             background: white;
             padding: 1.5rem;
             border-radius: 12px;
-            
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             margin-bottom: 1rem;
             transition: all 0.3s;
@@ -82,29 +81,29 @@ def render_dashboard():
     
     st.divider()
     
-    # 4 Cards en 2 filas
-    row1_col1, row1_col2 = st.columns(2)
-    row2_col1, row2_col2 = st.columns(2)
+    # FIXED: New layout structure
+    # Row 1: Validaciones Recientes (full width)
+    render_recent_validations_card()
     
-    # Card 1: Validaciones Recientes
-    with row1_col1:
-        render_recent_validations_card()
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    # Card 2: Proyectos Activos
-    with row1_col2:
-        render_active_projects_card()
+    # Row 2: Nueva Validación and Mis Proyectos in same row
+    col1, col2 = st.columns(2)
     
-    # Card 3: Nueva Validación
-    with row2_col1:
-        render_new_validation_card()
+    with col1:
+        render_nueva_validacion_button()
     
-    # Card 4: Uso del Mes
-    with row2_col2:
-        render_usage_card()
+    with col2:
+        render_mis_proyectos_button()
+    
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    
+    # Row 3: Uso del Mes (full width below)
+    render_usage_card()
 
 
 def render_recent_validations_card():
-    """Card de validaciones recientes"""
+    """Card de validaciones recientes con descripción y PDF download"""
     
     st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
     st.markdown("### Validaciones Recientes")
@@ -112,108 +111,132 @@ def render_recent_validations_card():
     history = SessionManager.get_validation_history()
     
     if history:
-        for val in history[:5]:
+        for i, val in enumerate(history[:5]):
             with st.container():
-                col1, col2 = st.columns([3, 1])
+                col1, col2, col3 = st.columns([4, 2, 1])
                 
                 with col1:
                     st.markdown(f"**{val.get('property_address', 'Sin dirección')}**")
-                    st.caption(f"{val.get('municipality', '')} | {val.get('timestamp', '')[:10]}")
+                    
+                    # Show project description
+                    description = val.get('project_description', val.get('description', ''))
+                    if description:
+                        st.caption(f"📝 {description[:50]}{'...' if len(description) > 50 else ''}")
+                    
+                    st.caption(f"📍 {val.get('municipality', '')} | 📅 {val.get('timestamp', '')[:10]}")
                 
                 with col2:
                     if val.get('viable'):
-                        st.markdown("Viable")
+                        st.success("✅ Viable")
                     else:
-                        st.markdown("No Viable")
+                        st.error("❌ No Viable")
                 
-                st.divider()
+                with col3:
+                    # PDF Download button
+                    pdf_data = val.get('pdf_data')
+                    if pdf_data:
+                        st.download_button(
+                            label="📥",
+                            data=pdf_data,
+                            file_name=f"reporte_{i+1}.pdf",
+                            mime="application/pdf",
+                            key=f"download_recent_{i}",
+                            help="Descargar PDF"
+                        )
+                    else:
+                        st.button(
+                            "📥",
+                            disabled=True,
+                            key=f"no_pdf_{i}",
+                            help="Reporte no disponible"
+                        )
+                
+                if i < len(history[:5]) - 1:
+                    st.divider()
     else:
-        st.info("No hay validaciones recientes. Crea tu primera validación")
+        st.info("📋 No hay validaciones recientes. Crea tu primera validación!")
+        
+        if st.button("➕ Nueva Validación", key="new_val_from_empty", use_container_width=True):
+            st.session_state.current_page = 'homepage'
+            st.rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
 
 
-def render_active_projects_card():
-    """Card de proyectos activos"""
+def render_nueva_validacion_button():
+    """Simple card with Nueva Validación button"""
     
     st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
-    st.markdown("### Proyectos Activos")
-    
-    projects = SessionManager.get_active_projects()
-    
-    if projects:
-        st.markdown(f'<div class="card-value">{len(projects)}</div>', unsafe_allow_html=True)
-        st.caption(f"proyecto{'s' if len(projects) != 1 else ''} en progreso")
-        
-        st.divider()
-        
-        for project in projects[:3]:
-            with st.container():
-                st.markdown(f"**{project['name']}**")
-                st.caption(f"Creado: {project['created_date'][:10]}")
-                
-                if st.button("Ver Detalles", key=f"view_{project['id']}", use_container_width=True):
-                    SessionManager.set_current_project(project['id'])
-                    st.rerun()
-                
-                st.divider()
-    else:
-        st.info("No tienes proyectos activos")
-        if st.button("Crear Proyecto", key="create_new_proj", use_container_width=True):
-            st.info("Usa el menú 'Proyectos' para crear uno")
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
-def render_new_validation_card():
-    """Card de nueva validación - CTA principal con botón Comienza ahora"""
-    
-    st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
-    st.markdown("### Nueva Validación")
     
     can_validate = SessionManager.can_validate()
     
     if can_validate:
         st.markdown("""
-        <div style="text-align: center; padding: 1rem;">
-            <p style="font-size: 1.1rem; color: #374151;">
-                Listo para validar tu proyecto?
-            </p>
+        <div style="text-align: center; padding: 2rem 0;">
+            <div style="font-size: 1.5rem; font-weight: 700; color: #374151; margin-bottom: 1rem;">
+                Nueva Validación
+            </div>
+            <div style="color: #6b7280; margin-bottom: 1.5rem;">
+                Valida tu proyecto de construcción
+            </div>
         </div>
         """, unsafe_allow_html=True)
-
-        # Boton "Nueva Validacion" que navega a homepage (validacion)
+        
         if st.button(
-            "Nueva Validacion",
-            key="start_validation_now",
+            "Comenzar Validación",
+            key="start_new_validation",
             type="primary",
             use_container_width=True
         ):
             st.session_state.current_page = 'homepage'
             st.rerun()
-
-        # Boton "Mis Proyectos" que navega a proyectos
-        if st.button(
-            "Mis Proyectos",
-            key="go_to_projects",
-            use_container_width=True
-        ):
-            st.session_state.current_page = 'active_projects'
-            st.rerun()
     else:
-        st.warning("""
-        Has alcanzado el límite de validaciones gratuitas este mes.
+        st.markdown("""
+        <div style="text-align: center; padding: 1.5rem 0;">
+            <div style="font-size: 1.5rem; font-weight: 700; color: #ef4444; margin-bottom: 1rem;">
+                Límite Alcanzado
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        **Actualiza a Plan Profesional para:**
-        - Validaciones ilimitadas Fase 1
-        - 10 validaciones PCOC/mes
-        - Memorial Explicativo generado
-        - Proyectos guardados
-        """)
+        st.warning("Has alcanzado el límite de validaciones gratuitas este mes.")
         
-        if st.button("Ver Planes", key="upgrade_plan", use_container_width=True):
+        if st.button("Ver Planes", key="upgrade_from_nueva_val", use_container_width=True):
             st.session_state.current_page = 'pricing'
             st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def render_mis_proyectos_button():
+    """Simple card with Mis Proyectos button"""
+    
+    st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
+    
+    projects = SessionManager.get_all_projects()
+    project_count = len(projects)
+    
+    st.markdown(f"""
+    <div style="text-align: center; padding: 2rem 0;">
+        <div style="font-size: 1.5rem; font-weight: 700; color: #374151; margin-bottom: 1rem;">
+            Mis Proyectos
+        </div>
+        <div style="font-size: 2.5rem; font-weight: 800; color: #10b981; margin-bottom: 0.5rem;">
+            {project_count}
+        </div>
+        <div style="color: #6b7280; margin-bottom: 1.5rem;">
+            proyecto{'s' if project_count != 1 else ''} guardado{'s' if project_count != 1 else ''}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if st.button(
+        "Ver Proyectos",
+        key="go_to_all_projects",
+        use_container_width=True
+    ):
+        st.session_state.current_page = 'active_projects'
+        st.rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
 

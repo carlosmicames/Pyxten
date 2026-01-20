@@ -73,10 +73,8 @@ def render_phase1_form(rules_db, claude_ai=None):
     # Initialize session state for auto-filled fields
     if 'validated_coordinates' not in st.session_state:
         st.session_state.validated_coordinates = None
-    if 'validated_zoning_code' not in st.session_state:
-        st.session_state.validated_zoning_code = ""
-    if 'validated_zoning_name' not in st.session_state:
-        st.session_state.validated_zoning_name = ""
+    if 'catastro_number' not in st.session_state:
+        st.session_state.catastro_number = ""
     if 'address_validated' not in st.session_state:
         st.session_state.address_validated = False
     if 'validation_warnings' not in st.session_state:
@@ -97,11 +95,11 @@ def render_phase1_form(rules_db, claude_ai=None):
     # ====================
     st.markdown("#### Describe tu Proyecto")
     
-    project_description = st.text_area(
+    property_description = st.text_area(
         "Que tipo de uso o construccion deseas?",
         placeholder="Ejemplos:\n"
                    "- 'Quiero construir una residencia unifamiliar'\n",
-        height=60,
+        height=30,  # FIXED: Reduced from 60 to 30
         help="Describe tu proyecto de forma natural - el sistema lo interpretara automaticamente",
         key="project_description"
     )
@@ -178,12 +176,22 @@ def render_phase1_form(rules_db, claude_ai=None):
             )
         
         with col2:
+            # FIXED: Auto-fill catastro from session state
+            catastro_value = st.session_state.get('catastro_number', '')
+            if catastro_value == "No disponible":
+                catastro_value = ""  # Clear the "No disponible" text for user input
+            
             catastro_number = st.text_input(
-                "Catastro (Opcional)",
-                placeholder="Ej: 123-456-789-01",
-                help="Numero de catastro de la propiedad. Puedes encontrarlo en el Mapa MIPR o en tu escritura.",
+                "Catastro",
+                value=catastro_value,
+                placeholder="Ej: 123-456-789-01" if not catastro_value else "",
+                help="Numero de catastro auto-detectado. Puedes editarlo si es incorrecto.",
                 key="catastro_input"
             )
+            
+            # Show caveat if catastro was auto-filled
+            if st.session_state.get('catastro_number') and st.session_state.catastro_number != "No disponible":
+                st.caption("⚠️ Debe verificar esta información para confirmar su exactitud.")
         
         st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
         
@@ -227,7 +235,7 @@ def render_phase1_form(rules_db, claude_ai=None):
             para buscar manualmente en la barra de busqueda del mapa MIPR.
             """)
     else:
-        # Si no se ha validado, mostrar el campo de catastro como opcional
+        # Si no se ha validado, no mostrar el campo de catastro
         catastro_number = None
 
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
@@ -303,7 +311,7 @@ def render_phase1_form(rules_db, claude_ai=None):
     # Handle project validation
     if validate_project_btn:
         # Validate required fields
-        if not project_description:
+        if not property_description:
             st.error("Por favor describe tu proyecto.")
             return
         
@@ -316,7 +324,7 @@ def render_phase1_form(rules_db, claude_ai=None):
             return
         
         # Interpret project type using AI if available
-        use_code = interpret_project_type(project_description, rules_db, claude_ai)
+        use_code = interpret_project_type(property_description, rules_db, claude_ai)
         
         if not use_code:
             st.error("No se pudo interpretar el tipo de proyecto. Por favor proporciona mas detalles.")
@@ -340,12 +348,24 @@ def render_phase1_form(rules_db, claude_ai=None):
             if "error" in result:
                 st.error(f"Error: {result['error']}")
             else:
-                # Add catastro to result if provided
-                if catastro_number:
-                    result['catastro'] = catastro_number
+                # FIXED: Add catastro to result for DISPLAY only (not PDF)
+                # Store catastro separately for UI display
+                display_catastro = catastro_number if catastro_number else st.session_state.get('catastro_number', 'No disponible')
                 
-                # Add to history
-                SessionManager.add_validation_to_history(result)
+                # Add metadata to result
+                result['property_address'] = property_address
+                result['municipality'] = municipality
+                result['project_description'] = property_description
+                
+                # Store PDF data separately
+                pdf_bytes = ReportGenerator.generate_pdf(result)
+                st.session_state.validation_pdf_data = pdf_bytes
+                
+                # Add to history with description and PDF
+                history_entry = result.copy()
+                history_entry['project_description'] = property_description
+                history_entry['pdf_data'] = pdf_bytes
+                SessionManager.add_validation_to_history(history_entry)
                 
                 # Add to current project if exists
                 current_project = SessionManager.get_current_project()
@@ -358,20 +378,21 @@ def render_phase1_form(rules_db, claude_ai=None):
                         }
                     )
                 
-                # Show results
-                render_validation_results(result, property_address, municipality)
+                # Show results with catastro for display
+                render_validation_results(result, property_address, municipality, display_catastro)
 
 
 def validate_address_with_gis(address: str, municipality: str):
     """
-    Validates address using Google Maps to get coordinates ONLY.
-    Does NOT query GIS services for catastro or zoning.
+    Validates address using Google Maps to get coordinates.
+    Then fetches catastro number from ArcGIS/CRIM.
     """
     import os
     
     # Reset previous state
     st.session_state.validation_warnings = []
     st.session_state.address_validated = False
+    st.session_state.catastro_number = ""
     
     # Step 1: Validate address with Google Maps to get coordinates
     coordinates = None
@@ -405,6 +426,29 @@ def validate_address_with_gis(address: str, municipality: str):
         st.session_state.validation_warnings.append(
             f"Error validando direccion: {str(e)}."
         )
+
+    # Step 2: Fetch catastro number from CRIM if coordinates available
+    if coordinates:
+        try:
+            from src.services.arcgis_pr_client import ArcGISPRClient
+            
+            arcgis_client = ArcGISPRClient()
+            parcel_result = arcgis_client.get_parcel_info(coordinates[0], coordinates[1])
+            
+            if parcel_result.get('success') and parcel_result.get('catastro'):
+                st.session_state.catastro_number = parcel_result['catastro']
+                st.success(f"✅ Número de catastro detectado: {parcel_result['catastro']}")
+            else:
+                st.session_state.catastro_number = "No disponible"
+                st.info("ℹ️ No se pudo obtener el número de catastro automáticamente. Puedes ingresarlo manualmente.")
+                
+        except Exception as e:
+            st.session_state.catastro_number = "No disponible"
+            st.session_state.validation_warnings.append(
+                f"No se pudo obtener número de catastro: {str(e)}"
+            )
+    else:
+        st.session_state.catastro_number = "No disponible"
 
 
 def interpret_project_type(description: str, rules_db, claude_ai=None) -> str:
@@ -503,7 +547,7 @@ def render_pcoc_quick_access(model_router):
     """)
 
 
-def render_validation_results(result, property_address, municipality):
+def render_validation_results(result, property_address, municipality, catastro_display):
     """Renderiza los resultados de validacion"""
     
     st.markdown("---")
@@ -537,9 +581,32 @@ def render_validation_results(result, property_address, municipality):
         </div>
         """, unsafe_allow_html=True)
 
-    # Show catastro if available
-    if result.get('catastro'):
-        st.markdown(f"**Numero de Catastro:** {result['catastro']}")
+    # FIXED: Show catastro in UI with caveat (NOT in PDF)
+    if catastro_display and catastro_display != "No disponible":
+        st.markdown(f"""
+        <div style="background: #f3f4f6; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+            <div style="font-weight: 600; color: #374151; margin-bottom: 0.5rem;">
+                📍 Número de Catastro
+            </div>
+            <div style="font-size: 1.1rem; color: #10b981; font-weight: 700;">
+                {catastro_display}
+            </div>
+            <div style="font-size: 0.85rem; color: #ef4444; margin-top: 0.5rem;">
+                ⚠️ Debe verificar esta información para confirmar su exactitud.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    elif catastro_display == "No disponible":
+        st.markdown("""
+        <div style="background: #fef2f2; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+            <div style="font-weight: 600; color: #991b1b;">
+                📍 Número de Catastro: No disponible
+            </div>
+            <div style="font-size: 0.85rem; color: #6b7280; margin-top: 0.5rem;">
+                No se pudo obtener el número de catastro para esta ubicación.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     # Detailed validation results
     st.markdown("### Validaciones Detalladas")
@@ -584,21 +651,26 @@ def render_validation_results(result, property_address, municipality):
     col1, col2 = st.columns(2)
     
     with col1:
-        pdf_bytes = ReportGenerator.generate_pdf(result)
-        st.download_button(
-            label="Descargar Reporte PDF",
-            data=pdf_bytes,
-            file_name=f"pyxten_validacion_{municipality.replace(' ', '_').lower()}.pdf",
-            mime="application/pdf",
-            use_container_width=True
-        )
+        # FIXED: PDF already generated and stored in session
+        pdf_bytes = st.session_state.get('validation_pdf_data')
+        if pdf_bytes:
+            st.download_button(
+                label="📥 Descargar Reporte PDF",
+                data=pdf_bytes,
+                file_name=f"pyxten_validacion_{municipality.replace(' ', '_').lower()}.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                key="download_pdf_results"
+            )
+        else:
+            st.error("Error generando PDF")
     
     with col2:
         if st.button("Guardar en Proyecto", use_container_width=True):
             st.session_state.show_save_modal = True
             st.session_state.validation_to_save = {
                 'result': result,
-                'pdf': pdf_bytes,
+                'pdf': st.session_state.validation_pdf_data,
                 'address': property_address,
                 'municipality': municipality
             }
