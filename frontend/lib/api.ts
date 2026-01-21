@@ -1,6 +1,13 @@
 import { getAccessToken } from './supabase'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+// Remove trailing slash from base URL to prevent double-slash issue
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000').replace(/\/+$/, '')
+
+// Export for use in components that build URLs directly
+export function getApiUrl(endpoint: string): string {
+  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+  return `${API_BASE_URL}${normalizedEndpoint}`
+}
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const token = await getAccessToken()
@@ -15,7 +22,11 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
     ...options.headers,
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  // Ensure endpoint starts with / and no double slashes
+  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+  const url = `${API_BASE_URL}${normalizedEndpoint}`
+
+  const response = await fetch(url, {
     ...options,
     headers,
   })
@@ -88,7 +99,7 @@ export const validationsApi = {
 
   get: (id: string) => fetchWithAuth(`/validations/${id}`),
 
-  getPdfUrl: (id: string) => `${API_BASE_URL}/validations/${id}/report.pdf`,
+  getPdfUrl: (id: string) => getApiUrl(`/validations/${id}/report.pdf`),
 }
 
 // Folders

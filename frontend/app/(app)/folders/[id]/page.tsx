@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { foldersApi, Folder, FolderItem } from '@/lib/api'
+import { foldersApi, getApiUrl, Folder, FolderItem } from '@/lib/api'
 import { getAccessToken } from '@/lib/supabase'
 
 export default function FolderDetailPage() {
@@ -65,7 +65,7 @@ export default function FolderDetailPage() {
 
   const handleDownloadPdf = async (validationId: string) => {
     const token = await getAccessToken()
-    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/validations/${validationId}/report.pdf`
+    const url = getApiUrl(`/validations/${validationId}/report.pdf`)
 
     const response = await fetch(url, {
       headers: {

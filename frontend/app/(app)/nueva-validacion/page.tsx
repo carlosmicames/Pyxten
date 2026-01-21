@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { projectsApi, Project, Validation } from '@/lib/api'
+import { projectsApi, getApiUrl, Project, Validation } from '@/lib/api'
 import { getAccessToken } from '@/lib/supabase'
 
 // Puerto Rico municipalities
@@ -120,7 +120,7 @@ export default function NuevaValidacionPage() {
     if (!validationResult) return
 
     const token = await getAccessToken()
-    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/validations/${validationResult.id}/report.pdf`
+    const url = getApiUrl(`/validations/${validationResult.id}/report.pdf`)
 
     const response = await fetch(url, {
       headers: {

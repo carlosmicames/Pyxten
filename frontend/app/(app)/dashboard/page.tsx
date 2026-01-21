@@ -5,6 +5,7 @@ import Link from 'next/link'
 import {
   validationsApi,
   foldersApi,
+  getApiUrl,
   ValidationListItem,
   Folder,
 } from '@/lib/api'
@@ -75,7 +76,7 @@ export default function DashboardPage() {
 
   const handleDownloadPdf = async (validationId: string) => {
     const token = await getAccessToken()
-    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/validations/${validationId}/report.pdf`
+    const url = getApiUrl(`/validations/${validationId}/report.pdf`)
 
     // Open in new window with auth header
     const response = await fetch(url, {
