@@ -3,6 +3,13 @@ import { getAccessToken } from './supabase'
 // Remove trailing slash from base URL to prevent double-slash issue
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000').replace(/\/+$/, '')
 
+...
+
+const response = await fetch(`${API_BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`, {
+  ...options,
+  headers,
+})
+
 // Export for use in components that build URLs directly
 export function getApiUrl(endpoint: string): string {
   const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`

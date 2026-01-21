@@ -13,12 +13,13 @@ class Settings(BaseSettings):
     database_url: str
 
     # Supabase
-    supabase_url: str
+    supabase_url: str = ""
+    supabase_jwt_aud: str = "authenticated"
     supabase_jwt_secret: str
 
     # External APIs
     google_maps_api_key: str
-    anthropic_api_key: str
+    supabase_jwt_secret: str = ""
 
     # CORS
     cors_allowed_origins: str = "http://localhost:3000"
