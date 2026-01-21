@@ -1,12 +1,17 @@
 """
 Pyxten API - FastAPI Application
 """
-import logging
+"""
+Pyxten API - FastAPI Application
+"""
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+import logging
 
 from app.config import get_settings
 from app.routers import projects, validations, folders
+
 
 # Configure logging for CORS debugging
 logging.basicConfig(level=logging.INFO)
