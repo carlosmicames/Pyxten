@@ -164,3 +164,17 @@ cython_debug/
 #.idea/
 # Environment variable
 .env
+# Node / Next
+node_modules/
+.next/
+out/
+dist/
+
+# Env
+.env
+.env.local
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
