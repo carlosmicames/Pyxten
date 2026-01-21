@@ -12,8 +12,11 @@ export function getApiUrl(endpoint: string): string {
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const token = await getAccessToken()
 
+  // DEBUG: Remove after verifying auth works
+  console.log('[fetchWithAuth] Token exists:', !!token, 'Endpoint:', endpoint)
+
   if (!token) {
-    throw new Error('No authentication token')
+    throw new Error('No authentication token - user may need to log in again')
   }
 
   const headers = {
@@ -25,6 +28,9 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   // Ensure endpoint starts with / and no double slashes
   const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
   const url = `${API_BASE_URL}${normalizedEndpoint}`
+
+  // DEBUG: Remove after verifying auth works
+  console.log('[fetchWithAuth] Request URL:', url, 'Has Auth header:', !!headers.Authorization)
 
   const response = await fetch(url, {
     ...options,
