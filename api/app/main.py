@@ -15,10 +15,16 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Configure CORS
+# ✅ CORS: Allow Vercel + local dev
+# Use allow_origin_regex for Vercel preview/prod domains.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "https://pyxten-6mncuruaf-carlos-micames-projects.vercel.app",
+    ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -29,14 +35,10 @@ app.include_router(projects.router)
 app.include_router(validations.router)
 app.include_router(folders.router)
 
-
 @app.get("/")
 def root():
-    """Health check endpoint"""
     return {"status": "ok", "service": "Pyxten API", "version": "1.0.0"}
-
 
 @app.get("/health")
 def health():
-    """Health check endpoint"""
     return {"status": "healthy"}
