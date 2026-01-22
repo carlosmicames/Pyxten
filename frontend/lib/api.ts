@@ -10,18 +10,9 @@ export function getApiUrl(endpoint: string): string {
 }
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
-  // DEBUG: Log environment and token status
-  console.log('[fetchWithAuth] API_BASE_URL:', API_BASE_URL)
-  console.log('[fetchWithAuth] NEXT_PUBLIC_API_BASE_URL env:', process.env.NEXT_PUBLIC_API_BASE_URL)
-
   const token = await getAccessToken()
 
-  // DEBUG: Token status
-  console.log('[fetchWithAuth] Token exists:', !!token)
-  console.log('[fetchWithAuth] Token preview:', token ? `${token.substring(0, 20)}...` : 'NULL')
-
   if (!token) {
-    console.error('[fetchWithAuth] ERROR: No token available. User may need to log in.')
     throw new Error('No authentication token - user may need to log in again')
   }
 
@@ -35,28 +26,13 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
   const url = `${API_BASE_URL}${normalizedEndpoint}`
 
-  // DEBUG: Request details
-  console.log('[fetchWithAuth] Request:', {
-    url,
-    method: options.method || 'GET',
-    hasAuthHeader: !!headers.Authorization,
-  })
-
   const response = await fetch(url, {
     ...options,
     headers,
   })
 
-  // DEBUG: Response status
-  console.log('[fetchWithAuth] Response:', {
-    status: response.status,
-    statusText: response.statusText,
-    ok: response.ok,
-  })
-
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Error desconocido' }))
-    console.error('[fetchWithAuth] API Error:', error)
     throw new Error(error.detail || `HTTP error ${response.status}`)
   }
 

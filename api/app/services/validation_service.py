@@ -233,7 +233,7 @@ class Phase1ValidationService:
 
             report["data_sources"].append(
                 {
-                    "source": "Claude AI (Anthropic)",
+                    "source": "OpenAI GPT-4o-mini",
                     "purpose": "Natural language use classification",
                     "timestamp": datetime.now().isoformat(),
                 }

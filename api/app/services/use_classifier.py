@@ -1,12 +1,12 @@
 """
 Natural Language Use Classifier
 Parses Spanish user descriptions into structured use codes from Reglamento Conjunto
-Ported from src/ai/use_classifier.py
+Uses OpenAI for classification (migrated from Anthropic)
 """
 import json
 import re
 from typing import List, Dict
-from anthropic import Anthropic
+from openai import OpenAI
 from app.config import get_settings
 
 
@@ -15,7 +15,7 @@ class UseClassifier:
 
     def __init__(self, use_types_data: List[Dict]):
         settings = get_settings()
-        self.client = Anthropic(api_key=settings.anthropic_api_key)
+        self.client = OpenAI(api_key=settings.openai_api_key)
         self.use_types = use_types_data
         self._build_use_index()
 
@@ -96,14 +96,18 @@ Responde SOLO en formato JSON valido (sin markdown):
 Se preciso y conservador. Si no estas seguro, indica confianza mas baja."""
 
         try:
-            message = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",
                 max_tokens=2000,
                 temperature=0.1,
-                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"},
+                messages=[
+                    {"role": "system", "content": "Responde SOLO en JSON valido."},
+                    {"role": "user", "content": prompt}
+                ],
             )
 
-            response_text = message.content[0].text
+            response_text = response.choices[0].message.content
             result = self._parse_json_response(response_text)
             result = self._validate_and_enrich(result, user_input)
 

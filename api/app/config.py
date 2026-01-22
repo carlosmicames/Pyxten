@@ -15,11 +15,11 @@ class Settings(BaseSettings):
     # Supabase
     supabase_url: str = ""
     supabase_jwt_aud: str = "authenticated"
-    supabase_jwt_secret: str
+    supabase_jwt_secret: str = ""
 
     # External APIs
-    google_maps_api_key: str
-    supabase_jwt_secret: str = ""
+    google_maps_api_key: str = ""
+    openai_api_key: str = ""
 
     # CORS
     cors_allowed_origins: str = "http://localhost:3000"

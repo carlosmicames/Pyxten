@@ -50,6 +50,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/nueva-validacion', label: 'Nueva Validacion' },
     { href: '/proyectos', label: 'Proyectos' },
+    { href: '/asistente-ia', label: 'Asistente IA' },
   ]
 
   return (
@@ -92,10 +93,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
-        <div className="p-8">
+      <main className="flex-1 overflow-auto flex flex-col">
+        <div className="flex-1 p-8">
           {children}
         </div>
+
+        {/* Global Footer Disclaimer */}
+        <footer className="border-t border-gray-200 bg-gray-50 px-8 py-4">
+          <p className="text-xs text-gray-500 text-center">
+            Pyxten LLC © 2026. Este informe es una pre-validacion automatizada. No sustituye aprobaciones oficiales de OGPe o la Junta de Planificacion.
+          </p>
+        </footer>
       </main>
     </div>
   )
