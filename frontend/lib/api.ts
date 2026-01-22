@@ -81,10 +81,13 @@ export const projectsApi = {
     method: 'DELETE',
   }),
 
-  validateFase1: (projectId: string, projectDescription: string) =>
+  validateFase1: (projectId: string, projectDescription: string, districtCode: string) =>
     fetchWithAuth(`/projects/${projectId}/validate_fase1`, {
       method: 'POST',
-      body: JSON.stringify({ project_description: projectDescription }),
+      body: JSON.stringify({
+        project_description: projectDescription,
+        district_code: districtCode,
+      }),
     }),
 }
 

@@ -163,12 +163,19 @@ def validate_fase1(
             detail="El proyecto debe tener direccion y municipio para validar",
         )
 
+    if not request.district_code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Debe seleccionar una calificacion/distrito de zonificacion",
+        )
+
     # Run validation
     validation_service = Phase1ValidationService()
     result = validation_service.validate(
         address=project.address,
         municipality=project.municipality,
         project_description=request.project_description,
+        district_code=request.district_code,
     )
 
     # Determine viability

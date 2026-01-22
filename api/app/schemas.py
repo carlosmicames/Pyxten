@@ -53,11 +53,34 @@ class ProjectResponse(BaseModel):
 
 
 # ============================================================================
+# Address Validation
+# ============================================================================
+
+class AddressValidationRequest(BaseModel):
+    address: str = Field(..., min_length=1)
+    municipality: str = Field(..., min_length=1)
+
+
+class AddressValidationResponse(BaseModel):
+    valid: bool
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    formatted_address: Optional[str] = None
+    catastro_number: Optional[str] = None
+    municipality: Optional[str] = None
+    overlays: Optional[List[Dict[str, Any]]] = None
+    gis_map_url: str = "https://gis.jp.pr.gov/mipr/"
+    disclaimer: str = "Debe verificar esta informacion en el mapa oficial para confirmar su exactitud antes de continuar."
+    error: Optional[str] = None
+
+
+# ============================================================================
 # Validations
 # ============================================================================
 
 class ValidateFase1Request(BaseModel):
     project_description: str = Field(..., min_length=1)
+    district_code: str = Field(..., min_length=1, description="User-selected zoning district code")
 
 
 class ValidationResponse(BaseModel):

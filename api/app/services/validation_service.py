@@ -36,6 +36,7 @@ class Phase1ValidationService:
         address: str,
         municipality: str,
         project_description: str,
+        district_code: str,
     ) -> Dict:
         """
         Main validation method
@@ -44,6 +45,7 @@ class Phase1ValidationService:
             address: Property address
             municipality: Municipality name
             project_description: Natural language description of intended use
+            district_code: User-selected zoning district code (required)
 
         Returns:
             Comprehensive validation report
@@ -54,6 +56,7 @@ class Phase1ValidationService:
                 "address": address,
                 "municipality": municipality,
                 "project_description": project_description,
+                "district_code": district_code,
             },
             "steps": {},
             "final_result": {},
@@ -71,17 +74,14 @@ class Phase1ValidationService:
 
         coords = report["steps"]["1_geocoding"]["coordinates"]
 
-        # STEP 2: Query ArcGIS for zoning
-        report["steps"]["2_arcgis_lookup"] = self._step_arcgis_lookup(
+        # STEP 2: Query ArcGIS for parcel + overlays (NOT zoning - user provides district)
+        report["steps"]["2_arcgis_lookup"] = self._step_arcgis_parcel_overlays(
             coords["latitude"], coords["longitude"], report
         )
 
-        if not report["steps"]["2_arcgis_lookup"]["success"]:
-            return self._early_exit(report, "arcgis_failed")
-
-        # STEP 3: Handle POT equivalency if needed
-        report["steps"]["3_pot_equivalency"] = self._step_pot_equivalency(
-            report["steps"]["2_arcgis_lookup"], report
+        # STEP 3: Handle POT equivalency using user-provided district_code
+        report["steps"]["3_pot_equivalency"] = self._step_pot_equivalency_from_user(
+            district_code, municipality, report
         )
 
         # STEP 4: Parse natural language use
@@ -149,8 +149,91 @@ class Phase1ValidationService:
         except Exception as e:
             return {"success": False, "error": f"Error geocoding: {str(e)}"}
 
+    def _step_arcgis_parcel_overlays(self, lat: float, lon: float, report: Dict) -> Dict:
+        """Step 2: Query ArcGIS for parcel info and overlays (NOT zoning - user provides district)"""
+        try:
+            # Get parcel/catastro info
+            parcel_result = self.arcgis_client.get_parcel_info(lat, lon)
+
+            # Get overlay zones
+            overlay_result = self.arcgis_client.get_overlay_zones(lat, lon)
+
+            report["data_sources"].append(
+                {
+                    "source": "ArcGIS CRIM / MIPR",
+                    "purpose": "Parcel info and overlay zones",
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
+
+            return {
+                "success": True,
+                "parcel": parcel_result if parcel_result.get("success") else None,
+                "overlays": overlay_result.get("overlays", []),
+            }
+
+        except Exception as e:
+            # Non-fatal - parcel/overlay lookup failure doesn't stop validation
+            report["warnings"].append(f"Error consultando ArcGIS: {str(e)}")
+            return {
+                "success": True,  # Don't fail validation for ArcGIS issues
+                "parcel": None,
+                "overlays": [],
+            }
+
+    def _step_pot_equivalency_from_user(
+        self, district_code: str, municipality: str, report: Dict
+    ) -> Dict:
+        """Step 3: Handle POT equivalency using user-provided district code"""
+        district_code = district_code.strip().upper() if district_code else ""
+
+        if self.pot_table.is_municipal_specific(district_code):
+            equivalent = self.pot_table.get_rc_equivalent(district_code, "2020")
+
+            if equivalent:
+                report["warnings"].append(
+                    f"Distrito municipal '{district_code}' mapeado a RC 2020: '{equivalent['rc_code']}'"
+                )
+
+                report["data_sources"].append(
+                    {
+                        "source": "Tabla 6.1 - Reglamento Conjunto 2023",
+                        "purpose": "POT district equivalency mapping",
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                )
+
+                return {
+                    "needs_equivalency": True,
+                    "user_selected_district": district_code,
+                    "equivalent": equivalent,
+                    "final_zoning_code": equivalent["rc_code"],
+                    "final_zoning_name": equivalent["rc_name"],
+                }
+            else:
+                # User selected a POT code but no mapping found - use as-is
+                report["warnings"].append(
+                    f"Distrito '{district_code}' no encontrado en tabla de equivalencias - usando codigo original"
+                )
+
+                return {
+                    "needs_equivalency": True,
+                    "user_selected_district": district_code,
+                    "final_zoning_code": district_code,
+                    "final_zoning_name": district_code,
+                    "warning": "Equivalencia no encontrada - usando codigo original",
+                }
+        else:
+            # Already an RC 2020 code, use directly
+            return {
+                "needs_equivalency": False,
+                "user_selected_district": district_code,
+                "final_zoning_code": district_code,
+                "final_zoning_name": district_code,
+            }
+
     def _step_arcgis_lookup(self, lat: float, lon: float, report: Dict) -> Dict:
-        """Step 2: Query MIPR ArcGIS for zoning and overlays"""
+        """Step 2: Query MIPR ArcGIS for zoning and overlays (LEGACY - kept for reference)"""
         try:
             property_info = self.arcgis_client.get_complete_property_info(lat, lon)
 
@@ -443,13 +526,14 @@ class Phase1ValidationService:
             factors.append("address_approximate")
             scores.append(0.8)
 
-        arcgis = report["steps"]["2_arcgis_lookup"]
-        if arcgis["zoning"].get("confidence") == "high":
-            factors.append("zoning_confirmed")
+        # User-provided district is trusted (high confidence)
+        pot_equiv = report["steps"]["3_pot_equivalency"]
+        if pot_equiv.get("final_zoning_code"):
+            factors.append("zoning_user_provided")
             scores.append(1.0)
         else:
-            factors.append("zoning_uncertain")
-            scores.append(0.6)
+            factors.append("zoning_missing")
+            scores.append(0.5)
 
         use_class = report["steps"]["4_use_classification"]
         if use_class.get("uses"):

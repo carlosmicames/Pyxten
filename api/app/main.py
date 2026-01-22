@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 import logging
 
 from app.config import get_settings
-from app.routers import projects, validations, folders, chat
+from app.routers import projects, validations, folders, chat, address
 
 
 # Configure logging for CORS debugging
@@ -37,6 +37,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(address.router)
 app.include_router(projects.router)
 app.include_router(validations.router)
 app.include_router(folders.router)

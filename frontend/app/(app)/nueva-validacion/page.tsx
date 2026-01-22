@@ -114,7 +114,7 @@ export default function NuevaValidacionPage() {
     setValidatingAddress(true)
 
     try {
-      // Call backend to validate address with ArcGIS
+      // Call backend to validate address with Google Maps + ArcGIS
       const token = await getAccessToken()
       const response = await fetch(getApiUrl('/validate-address'), {
         method: 'POST',
@@ -129,12 +129,8 @@ export default function NuevaValidacionPage() {
       })
 
       if (!response.ok) {
-        // If endpoint doesn't exist yet, simulate a response for development
-        // TODO: Remove this fallback once endpoint is implemented
-        console.warn('Address validation endpoint not implemented, using fallback')
-        setCoordinates({ lat: 18.4655, lng: -66.1057 })
-        setCatastroNumber('000-000-000-00')
-        setAddressValidated(true)
+        const errorData = await response.json().catch(() => ({ error: 'Error validando direccion' }))
+        setError(errorData.error || errorData.detail || 'No se pudo validar la direccion')
         return
       }
 
@@ -148,11 +144,7 @@ export default function NuevaValidacionPage() {
         setError(result.error || 'No se pudo validar la direccion')
       }
     } catch (err: any) {
-      // Fallback for development
-      console.warn('Address validation error, using fallback:', err.message)
-      setCoordinates({ lat: 18.4655, lng: -66.1057 })
-      setCatastroNumber('000-000-000-00')
-      setAddressValidated(true)
+      setError(err.message || 'Error conectando con el servidor')
     } finally {
       setValidatingAddress(false)
     }
@@ -177,17 +169,23 @@ export default function NuevaValidacionPage() {
         return
       }
 
+      if (!calificacion) {
+        setError('Debe seleccionar una calificacion/distrito de zonificacion')
+        setSubmitting(false)
+        return
+      }
+
       // Create project and run validation
       const createdProject = await projectsApi.create({
         name: projectName || `Validacion ${new Date().toLocaleDateString('es-PR')}`,
         address: address,
         municipality: municipality,
         catastro_number: catastroNumber || undefined,
-        calificacion: calificacion || undefined,
+        calificacion: calificacion,
       })
 
-      // Run validation
-      const result = await projectsApi.validateFase1(createdProject.id, projectDescription)
+      // Run validation with user-selected district
+      const result = await projectsApi.validateFase1(createdProject.id, projectDescription, calificacion)
       setValidationResult(result)
     } catch (err: any) {
       setError(err.message || 'Error validando proyecto')
@@ -425,12 +423,12 @@ export default function NuevaValidacionPage() {
                 Verifique la informacion en el mapa oficial:
               </p>
               <a
-                href={`https://sigejp.pr.gov/SIGMIPR_HTML5/index.html?lat=${coordinates.lat}&lng=${coordinates.lng}&zoom=18`}
+                href="https://gis.jp.pr.gov/mipr/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:text-blue-800 underline"
               >
-                Abrir Mapa GIS de Junta de Planificacion
+                Abrir Mapa Interactivo de Puerto Rico (MIPR)
               </a>
               <p className="text-blue-600 text-xs mt-2">
                 * Debe verificar esta informacion para confirmar su exactitud antes de continuar.
@@ -443,7 +441,7 @@ export default function NuevaValidacionPage() {
         {municipality && (
           <div>
             <label className="label">
-              Calificacion / Distrito de Zonificacion
+              Calificacion / Distrito de Zonificacion <span className="text-red-500">*</span>
               {hasPOT && (
                 <span className="ml-2 text-xs font-normal text-blue-600">
                   (POT Municipal - {municipality})
@@ -454,8 +452,9 @@ export default function NuevaValidacionPage() {
               className="input-field"
               value={calificacion}
               onChange={(e) => setCalificacion(e.target.value)}
+              required
             >
-              <option value="">-- Seleccionar calificacion (opcional) --</option>
+              <option value="">-- Seleccionar calificacion --</option>
               {availableCalificaciones.map((cal) => (
                 <option key={cal} value={cal}>
                   {cal}
@@ -464,8 +463,8 @@ export default function NuevaValidacionPage() {
             </select>
             <p className="text-xs text-gray-500 mt-1">
               {hasPOT
-                ? `${municipality} tiene su propio Plan de Ordenamiento Territorial (POT)`
-                : 'Usando calificaciones del Reglamento Conjunto 2020'}
+                ? `${municipality} tiene su propio Plan de Ordenamiento Territorial (POT). Verifique la calificacion en el mapa MIPR.`
+                : 'Usando calificaciones del Reglamento Conjunto 2020. Verifique la calificacion en el mapa MIPR.'}
             </p>
           </div>
         )}

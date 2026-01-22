@@ -377,8 +377,10 @@ class POTEquivalencyTable:
             "equivalency_year": year,
         }
 
-    def is_municipal_specific(self, district_code: str) -> bool:
+    def is_municipal_specific(self, district_code: str | None) -> bool:
         """Check if a district code is municipal-specific (needs equivalency)"""
+        if not district_code:
+            return False
         district_code = district_code.strip().upper()
 
         # RC 2020 codes that don't need translation
