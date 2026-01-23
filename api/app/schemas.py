@@ -159,6 +159,17 @@ class FolderItemResponse(BaseModel):
 
 
 # ============================================================================
+# Usage Statistics
+# ============================================================================
+
+class UsageStatsResponse(BaseModel):
+    period: str
+    total_validations: int
+    viable_validations: int
+    non_viable_validations: int
+
+
+# ============================================================================
 # Auth
 # ============================================================================
 

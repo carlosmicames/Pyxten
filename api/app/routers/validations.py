@@ -3,17 +3,52 @@ Validations endpoints
 """
 from typing import List, Optional
 from uuid import UUID
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
+from sqlalchemy import func, extract
 
 from app.database import get_db
 from app.auth import get_current_user
 from app.models import Validation, Project
-from app.schemas import ValidationListResponse, ValidationResponse, UserInfo
+from app.schemas import ValidationListResponse, ValidationResponse, UserInfo, UsageStatsResponse
 from app.services.pdf_generator import PDFReportGenerator
 
 router = APIRouter(prefix="/validations", tags=["validations"])
+
+
+@router.get("/stats", response_model=UsageStatsResponse)
+def get_usage_stats(
+    user: UserInfo = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Get usage statistics for the current month.
+    Returns total validations, viable count, and non-viable count.
+    """
+    now = datetime.utcnow()
+    current_year = now.year
+    current_month = now.month
+    period = f"{current_year}-{current_month:02d}"
+
+    # Query validations for current month
+    base_query = db.query(Validation).filter(
+        Validation.user_id == user.user_id,
+        extract('year', Validation.created_at) == current_year,
+        extract('month', Validation.created_at) == current_month,
+    )
+
+    total = base_query.count()
+    viable = base_query.filter(Validation.viable == True).count()
+    non_viable = base_query.filter(Validation.viable == False).count()
+
+    return UsageStatsResponse(
+        period=period,
+        total_validations=total,
+        viable_validations=viable,
+        non_viable_validations=non_viable,
+    )
 
 
 @router.get("", response_model=List[ValidationListResponse])

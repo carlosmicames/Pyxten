@@ -103,6 +103,8 @@ export const validationsApi = {
   get: (id: string) => fetchWithAuth(`/validations/${id}`),
 
   getPdfUrl: (id: string) => getApiUrl(`/validations/${id}/report.pdf`),
+
+  getStats: (): Promise<UsageStats> => fetchWithAuth('/validations/stats'),
 }
 
 // Folders
@@ -187,4 +189,11 @@ export interface FolderItem {
   project_address: string | null
   validation_date: string | null
   viable: boolean
+}
+
+export interface UsageStats {
+  period: string
+  total_validations: number
+  viable_validations: number
+  non_viable_validations: number
 }
