@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { projectsApi, foldersApi, Project, Folder, getApiUrl } from '@/lib/api'
 import { getAccessToken } from '@/lib/supabase'
+import SaveToFolderModal from '@/components/SaveToFolderModal'
 
 // Status pill component
 function Phase1StatusPill({ completed }: { completed: boolean }) {
@@ -29,6 +30,9 @@ export default function ProyectosPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [newFolderName, setNewFolderName] = useState('')
   const [creatingFolder, setCreatingFolder] = useState(false)
+  const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null)
+  const [saveModalOpen, setSaveModalOpen] = useState(false)
+  const [selectedProjectForSave, setSelectedProjectForSave] = useState<{ projectId: string; validationId: string } | null>(null)
 
   useEffect(() => {
     loadData()
@@ -92,18 +96,9 @@ export default function ProyectosPage() {
     }
   }
 
-  const handleDownloadPdf = async (projectId: string, validationId?: string) => {
-    // Projects store their validation result in phase1_result
-    // We need to find the validation associated with this project
-    const project = projects.find(p => p.id === projectId)
-    if (!project?.phase1_completed) {
-      alert('Este proyecto no tiene una validacion completada.')
-      return
-    }
-
+  const getProjectValidationId = async (projectId: string): Promise<string | null> => {
     try {
       const token = await getAccessToken()
-      // Get the project's validations to find the PDF
       const response = await fetch(getApiUrl(`/validations?project_id=${projectId}&limit=1`), {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -113,30 +108,117 @@ export default function ProyectosPage() {
       if (response.ok) {
         const validations = await response.json()
         if (validations.length > 0) {
-          const validation = validations[0]
-          const pdfResponse = await fetch(getApiUrl(`/validations/${validation.id}/report.pdf`), {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          })
-
-          if (pdfResponse.ok) {
-            const blob = await pdfResponse.blob()
-            const blobUrl = URL.createObjectURL(blob)
-            const link = document.createElement('a')
-            link.href = blobUrl
-            link.download = `validacion_${validation.id}.pdf`
-            document.body.appendChild(link)
-            link.click()
-            document.body.removeChild(link)
-            URL.revokeObjectURL(blobUrl)
-          }
-        } else {
-          alert('No se encontro validacion para este proyecto.')
+          return validations[0].id
         }
       }
+      return null
+    } catch (err) {
+      console.error('Error fetching validation:', err)
+      return null
+    }
+  }
+
+  const handleDownloadPdf = async (projectId: string) => {
+    const project = projects.find(p => p.id === projectId)
+    if (!project?.phase1_completed) {
+      setError('Este proyecto no tiene una validacion completada.')
+      return
+    }
+
+    setDownloadingPdf(projectId)
+    setError(null)
+
+    try {
+      const token = await getAccessToken()
+      if (!token) {
+        setError('Sesion expirada. Por favor inicie sesion nuevamente.')
+        return
+      }
+
+      // Get the project's validations to find the PDF
+      const response = await fetch(getApiUrl(`/validations?project_id=${projectId}&limit=1`), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        setError('Error al buscar la validacion del proyecto.')
+        return
+      }
+
+      const validations = await response.json()
+      if (validations.length === 0) {
+        setError('No se encontro validacion para este proyecto.')
+        return
+      }
+
+      const validation = validations[0]
+      const pdfResponse = await fetch(getApiUrl(`/validations/${validation.id}/report.pdf`), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!pdfResponse.ok) {
+        setError('Error al generar el PDF. Por favor intente de nuevo.')
+        return
+      }
+
+      const blob = await pdfResponse.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = `validacion_${validation.id}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(blobUrl)
     } catch (err) {
       console.error('Error downloading PDF:', err)
+      setError('Error al descargar el PDF. Por favor intente de nuevo.')
+    } finally {
+      setDownloadingPdf(null)
+    }
+  }
+
+  const handleOpenSaveModal = async (projectId: string) => {
+    const project = projects.find(p => p.id === projectId)
+    if (!project?.phase1_completed) {
+      setError('Este proyecto no tiene una validacion completada.')
+      return
+    }
+
+    const validationId = await getProjectValidationId(projectId)
+    if (!validationId) {
+      setError('No se encontro validacion para este proyecto.')
+      return
+    }
+
+    setSelectedProjectForSave({ projectId, validationId })
+    setSaveModalOpen(true)
+  }
+
+  const handleSaveToFolder = async (folderId: string, isNewFolder: boolean, newFolderName?: string) => {
+    if (!selectedProjectForSave) return
+
+    try {
+      let targetFolderId = folderId
+
+      if (isNewFolder && newFolderName) {
+        const newFolder = await foldersApi.create(newFolderName)
+        targetFolderId = newFolder.id
+        // Refresh folders list
+        const foldersData = await foldersApi.list()
+        setFolders(foldersData)
+      }
+
+      await foldersApi.addItem(targetFolderId, selectedProjectForSave.validationId)
+    } catch (err: any) {
+      if (err.message?.includes('already exists') || err.message?.includes('409')) {
+        throw new Error('Esta validacion ya esta en esa carpeta.')
+      }
+      throw err
     }
   }
 
@@ -280,15 +362,24 @@ export default function ProyectosPage() {
                       {project.phase1_completed ? (
                         <button
                           onClick={() => handleDownloadPdf(project.id)}
-                          className="text-primary-600 hover:text-primary-800 font-medium"
+                          disabled={downloadingPdf === project.id}
+                          className="text-primary-600 hover:text-primary-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Descargar
+                          {downloadingPdf === project.id ? 'Descargando...' : 'Descargar'}
                         </button>
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm space-x-3">
+                      {project.phase1_completed && (
+                        <button
+                          onClick={() => handleOpenSaveModal(project.id)}
+                          className="text-primary-600 hover:text-primary-800 font-medium"
+                        >
+                          Guardar
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDeleteProject(project.id)}
                         className="text-red-600 hover:text-red-800"
@@ -405,6 +496,17 @@ export default function ProyectosPage() {
           </div>
         )}
       </section>
+
+      {/* Save to Folder Modal */}
+      <SaveToFolderModal
+        isOpen={saveModalOpen}
+        onClose={() => {
+          setSaveModalOpen(false)
+          setSelectedProjectForSave(null)
+        }}
+        onSave={handleSaveToFolder}
+        validationId={selectedProjectForSave?.validationId || ''}
+      />
     </div>
   )
 }
