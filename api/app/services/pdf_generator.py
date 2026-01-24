@@ -34,7 +34,7 @@ class PDFReportGenerator:
         """Setup custom paragraph styles"""
         self.styles.add(
             ParagraphStyle(
-                "Title",
+                "PyxtenTitle",
                 parent=self.styles["Heading1"],
                 fontSize=18,
                 spaceAfter=12,
@@ -43,7 +43,7 @@ class PDFReportGenerator:
         )
         self.styles.add(
             ParagraphStyle(
-                "SubTitle",
+                "PyxtenSubTitle",
                 parent=self.styles["Heading2"],
                 fontSize=14,
                 spaceAfter=8,
@@ -101,7 +101,7 @@ class PDFReportGenerator:
 
         # Title
         story.append(
-            Paragraph("Informe de Validacion Fase 1", self.styles["Title"])
+            Paragraph("Informe de Validacion Fase 1", self.styles["PyxtenTitle"])
         )
         story.append(Spacer(1, 12))
 
@@ -148,7 +148,7 @@ class PDFReportGenerator:
         if viable:
             # Header for viable
             story.append(
-                Paragraph("Proyecto Viable", self.styles["SubTitle"])
+                Paragraph("Proyecto Viable", self.styles["PyxtenSubTitle"])
             )
             story.append(Spacer(1, 6))
             # EXACT required text for viable
@@ -161,7 +161,7 @@ class PDFReportGenerator:
         else:
             # Header for not viable
             story.append(
-                Paragraph("Resultado de Validacion", self.styles["SubTitle"])
+                Paragraph("Resultado de Validacion", self.styles["PyxtenSubTitle"])
             )
             story.append(Spacer(1, 6))
             # EXACT required text for not viable
@@ -178,7 +178,7 @@ class PDFReportGenerator:
         uses_validated = final_result.get("uses_validated", [])
         if uses_validated:
             story.append(
-                Paragraph("Usos Evaluados", self.styles["SubTitle"])
+                Paragraph("Usos Evaluados", self.styles["PyxtenSubTitle"])
             )
             story.append(Spacer(1, 6))
 
@@ -197,7 +197,7 @@ class PDFReportGenerator:
 
         if individual_validations:
             story.append(
-                Paragraph("Detalle de Compatibilidad", self.styles["SubTitle"])
+                Paragraph("Detalle de Compatibilidad", self.styles["PyxtenSubTitle"])
             )
             story.append(Spacer(1, 6))
 
@@ -214,7 +214,7 @@ class PDFReportGenerator:
 
         if restrictions:
             story.append(
-                Paragraph("Restricciones Adicionales", self.styles["SubTitle"])
+                Paragraph("Restricciones Adicionales", self.styles["PyxtenSubTitle"])
             )
             story.append(Spacer(1, 6))
 
@@ -232,7 +232,7 @@ class PDFReportGenerator:
         warnings = validation_result.get("warnings", [])
         if warnings:
             story.append(
-                Paragraph("Advertencias", self.styles["SubTitle"])
+                Paragraph("Advertencias", self.styles["PyxtenSubTitle"])
             )
             story.append(Spacer(1, 6))
 
@@ -245,7 +245,7 @@ class PDFReportGenerator:
         data_sources = validation_result.get("data_sources", [])
         if data_sources:
             story.append(
-                Paragraph("Fuentes de Datos", self.styles["SubTitle"])
+                Paragraph("Fuentes de Datos", self.styles["PyxtenSubTitle"])
             )
             story.append(Spacer(1, 6))
 
