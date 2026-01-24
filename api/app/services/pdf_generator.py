@@ -5,10 +5,13 @@ CRITICAL WORDING REQUIREMENTS:
 1) If viable: "El proyecto cumple con los requisitos de zonificacion en esa area."
 2) If NOT viable: "El uso propuesto no es compatible con la zonificacion."
 3) Remove "Proximos Pasos recomendados" section entirely
+4) Remove "Fuentes de Datos" section
+5) Zonificacion should show calificacion from POT if available, otherwise Joint Regulation
+6) Under "Detalle de Compatibilidad", include allowed uses for that zonificacion
 """
 from io import BytesIO
 from datetime import datetime
-from typing import Dict
+from typing import Dict, List
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
@@ -22,6 +25,8 @@ from reportlab.platypus import (
     TableStyle,
 )
 
+from app.services.rules_data import get_rules_db
+
 
 class PDFReportGenerator:
     """Generate PDF reports for Phase 1 validations"""
@@ -29,6 +34,19 @@ class PDFReportGenerator:
     def __init__(self):
         self.styles = getSampleStyleSheet()
         self._setup_custom_styles()
+
+    def _get_allowed_uses_for_zone(self, zoning_code: str) -> List[Dict]:
+        """Get list of allowed uses for a specific zoning code"""
+        rules_db = get_rules_db()
+        use_types = rules_db.get_use_types()
+
+        allowed_uses = []
+        for use in use_types:
+            compatible_zones = use.get("compatible_zones", [])
+            if zoning_code in compatible_zones:
+                allowed_uses.append(use)
+
+        return allowed_uses
 
     def _setup_custom_styles(self):
         """Setup custom paragraph styles"""
@@ -122,9 +140,36 @@ class PDFReportGenerator:
         ]
 
         final_result = validation_result.get("final_result", {})
-        if final_result.get("zoning_code"):
+        steps = validation_result.get("steps", {})
+
+        # Get zoning info - prefer POT calificacion if available, else use Joint Regulation
+        pot_step = steps.get("3_pot_equivalency", {})
+        zoning_code = final_result.get("zoning_code", "")
+        zoning_name = final_result.get("zoning_name", "")
+
+        # Check if there's a POT original code (municipality-specific calificacion)
+        pot_equivalent = pot_step.get("equivalent", {})
+        original_pot_code = pot_equivalent.get("original_pot_code", "")
+        user_selected_district = pot_step.get("user_selected_district", "")
+
+        if original_pot_code or user_selected_district:
+            # Has POT calificacion - show it alongside the RC equivalent
+            pot_code = original_pot_code or user_selected_district
+            if zoning_code and zoning_name:
+                project_data.append(
+                    ["Calificacion (POT):", pot_code]
+                )
+                project_data.append(
+                    ["Zonificacion (RC):", f"{zoning_code} - {zoning_name}"]
+                )
+            else:
+                project_data.append(
+                    ["Calificacion:", pot_code]
+                )
+        elif zoning_code:
+            # No POT, use Joint Regulation calificacion directly
             project_data.append(
-                ["Zonificacion:", f"{final_result.get('zoning_code', 'N/A')} - {final_result.get('zoning_name', '')}"]
+                ["Calificacion:", f"{zoning_code} - {zoning_name}"]
             )
 
         project_table = Table(project_data, colWidths=[1.5 * inch, 4.5 * inch])
@@ -191,7 +236,6 @@ class PDFReportGenerator:
             story.append(Spacer(1, 12))
 
         # Compatibility details
-        steps = validation_result.get("steps", {})
         compatibility = steps.get("5_compatibility_validation", {})
         individual_validations = compatibility.get("individual_validations", [])
 
@@ -207,6 +251,22 @@ class PDFReportGenerator:
                 story.append(Paragraph(val_text, self.styles["Normal"]))
 
             story.append(Spacer(1, 12))
+
+        # Allowed uses for this zonificacion (from Joint Regulation)
+        if zoning_code:
+            allowed_uses = self._get_allowed_uses_for_zone(zoning_code)
+            if allowed_uses:
+                story.append(
+                    Paragraph("Usos Permitidos en esta Zonificacion", self.styles["PyxtenSubTitle"])
+                )
+                story.append(Spacer(1, 6))
+
+                for use in allowed_uses:
+                    permit_type = "Ministerial" if use.get("ministerial") else "Discrecional"
+                    use_text = f"- {use.get('name_es', use.get('code', 'N/A'))} ({permit_type})"
+                    story.append(Paragraph(use_text, self.styles["Normal"]))
+
+                story.append(Spacer(1, 12))
 
         # Overlay restrictions (if any)
         overlays = steps.get("6_overlay_restrictions", {})
@@ -241,23 +301,7 @@ class PDFReportGenerator:
 
             story.append(Spacer(1, 12))
 
-        # Data sources
-        data_sources = validation_result.get("data_sources", [])
-        if data_sources:
-            story.append(
-                Paragraph("Fuentes de Datos", self.styles["PyxtenSubTitle"])
-            )
-            story.append(Spacer(1, 6))
-
-            for source in data_sources:
-                story.append(
-                    Paragraph(
-                        f"- {source.get('source', 'N/A')}: {source.get('purpose', '')}",
-                        self.styles["Normal"],
-                    )
-                )
-
-            story.append(Spacer(1, 12))
+        # NOTE: "Fuentes de Datos" section removed per requirements
 
         # Footer
         story.append(Spacer(1, 20))
