@@ -80,3 +80,45 @@ class FolderItem(Base):
 
     folder = relationship("Folder", back_populates="items")
     validation = relationship("Validation")
+
+
+class PCOCValidation(Base):
+    """
+    PCOC (Permiso de Construcción) Validation
+    Stores the multi-step construction permit validation checklist
+    """
+    __tablename__ = "pcoc_validations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="SET NULL"))
+
+    # Basic project info (can be from linked project or manual entry)
+    project_name = Column(Text)
+    property_address = Column(Text)
+    municipality = Column(Text)
+    zoning_code = Column(Text)
+
+    # Current step in the workflow
+    current_step = Column(Integer, default=1)  # 1-5 (filters 1-4 + result)
+    status = Column(Text, default="en_progreso")  # en_progreso, completado, requiere_accion
+
+    # Filter 1: Requiere Permiso de Construcción
+    filter1_data = Column(JSONB)  # proposed_use, exempt_selections, ai_interpretation, is_exempt, etc.
+
+    # Filter 2: Ubicación (Zonas Sobrepuestas)
+    filter2_data = Column(JSONB)  # zona_historica, zona_turistica, zona_inundacion, auto_detected, user_overrides
+
+    # Filter 3: Clasificación del Trámite (Ministerial vs Discrecional)
+    filter3_data = Column(JSONB)  # project_params, district_requirements, comparison_results, is_ministerial
+
+    # Filter 4: Cumplimiento Ambiental
+    filter4_data = Column(JSONB)  # categorical_exclusion_check, requires_ea_dia, exclusion_category
+
+    # Final result
+    result = Column(JSONB)  # summary, action_items, recommendations, permit_type
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    project = relationship("Project")

@@ -179,6 +179,120 @@ class UserInfo(BaseModel):
 
 
 # ============================================================================
+# PCOC Validations (Construction Permit)
+# ============================================================================
+
+class PCOCFilter1Data(BaseModel):
+    """Filter 1: Requiere Permiso de Construccion?"""
+    proposed_use: Optional[str] = None
+    exempt_selections: Optional[List[str]] = None  # List of selected exempt category codes
+    ai_interpretation: Optional[str] = None
+    is_exempt: Optional[bool] = None
+    exempt_reason: Optional[str] = None
+
+
+class PCOCFilter2Data(BaseModel):
+    """Filter 2: Ubicacion (Zonas Sobrepuestas)"""
+    zona_historica: Optional[bool] = None
+    zona_historica_auto: Optional[bool] = None  # Auto-detected value
+    zona_turistica: Optional[bool] = None
+    zona_turistica_auto: Optional[bool] = None
+    zona_inundacion: Optional[bool] = None
+    zona_inundacion_auto: Optional[bool] = None
+    required_recommendations: Optional[List[str]] = None  # ICP, Turismo, DRNA, etc.
+
+
+class PCOCFilter3Data(BaseModel):
+    """Filter 3: Clasificacion del Tramite (Ministerial vs Discrecional)"""
+    project_params: Optional[Dict[str, Any]] = None  # altura, area_ocupacion, etc.
+    district_requirements: Optional[Dict[str, Any]] = None  # From rules_data
+    comparison_results: Optional[List[Dict[str, Any]]] = None  # Per-parameter comparison
+    is_ministerial: Optional[bool] = None
+    non_compliant_params: Optional[List[str]] = None
+
+
+class PCOCFilter4Data(BaseModel):
+    """Filter 4: Cumplimiento Ambiental"""
+    is_categorical_exclusion: Optional[bool] = None
+    exclusion_category: Optional[str] = None
+    exclusion_reason: Optional[str] = None
+    requires_ea_dia: Optional[bool] = None
+
+
+class PCOCResultData(BaseModel):
+    """Final PCOC validation result"""
+    summary: Optional[str] = None
+    permit_type: Optional[str] = None  # obra_exenta, ministerial, discrecional
+    action_items: Optional[List[Dict[str, Any]]] = None
+    recommendations: Optional[List[str]] = None
+    viable: Optional[bool] = None
+
+
+class PCOCValidationCreate(BaseModel):
+    """Create a new PCOC validation"""
+    project_id: Optional[UUID] = None
+    project_name: Optional[str] = None
+    property_address: Optional[str] = None
+    municipality: Optional[str] = None
+    zoning_code: Optional[str] = None
+
+
+class PCOCValidationUpdate(BaseModel):
+    """Update a PCOC validation"""
+    project_name: Optional[str] = None
+    property_address: Optional[str] = None
+    municipality: Optional[str] = None
+    zoning_code: Optional[str] = None
+    current_step: Optional[int] = None
+    status: Optional[str] = None
+    filter1_data: Optional[Dict[str, Any]] = None
+    filter2_data: Optional[Dict[str, Any]] = None
+    filter3_data: Optional[Dict[str, Any]] = None
+    filter4_data: Optional[Dict[str, Any]] = None
+    result: Optional[Dict[str, Any]] = None
+
+
+class PCOCValidationResponse(BaseModel):
+    """PCOC validation response"""
+    id: UUID
+    user_id: UUID
+    project_id: Optional[UUID] = None
+    project_name: Optional[str] = None
+    property_address: Optional[str] = None
+    municipality: Optional[str] = None
+    zoning_code: Optional[str] = None
+    current_step: int = 1
+    status: str = "en_progreso"
+    filter1_data: Optional[Dict[str, Any]] = None
+    filter2_data: Optional[Dict[str, Any]] = None
+    filter3_data: Optional[Dict[str, Any]] = None
+    filter4_data: Optional[Dict[str, Any]] = None
+    result: Optional[Dict[str, Any]] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PCOCValidationListResponse(BaseModel):
+    """PCOC validation list item"""
+    id: UUID
+    user_id: UUID
+    project_id: Optional[UUID] = None
+    project_name: Optional[str] = None
+    property_address: Optional[str] = None
+    municipality: Optional[str] = None
+    current_step: int = 1
+    status: str = "en_progreso"
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ============================================================================
 # Generic
 # ============================================================================
 

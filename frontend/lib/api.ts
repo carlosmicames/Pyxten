@@ -197,3 +197,95 @@ export interface UsageStats {
   viable_validations: number
   non_viable_validations: number
 }
+
+// PCOC Validation types
+export interface PCOCValidation {
+  id: string
+  user_id: string
+  project_id: string | null
+  project_name: string | null
+  property_address: string | null
+  municipality: string | null
+  zoning_code: string | null
+  current_step: number
+  status: string
+  filter1_data: Record<string, unknown> | null
+  filter2_data: Record<string, unknown> | null
+  filter3_data: Record<string, unknown> | null
+  filter4_data: Record<string, unknown> | null
+  result: Record<string, unknown> | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ExemptCategory {
+  code: string
+  name_es: string
+  name_en: string
+  section: string
+}
+
+export interface DistrictParameters {
+  code: string
+  name_es: string
+  name_en: string
+  category: string
+  parameters: {
+    max_height: string | null
+    max_coverage: string | null
+    min_lot_size: string | null
+  }
+}
+
+// PCOC API
+export const pcocApi = {
+  list: (limit: number = 50): Promise<PCOCValidation[]> =>
+    fetchWithAuth(`/pcoc?limit=${limit}`),
+
+  get: (id: string): Promise<PCOCValidation> =>
+    fetchWithAuth(`/pcoc/${id}`),
+
+  create: (data: {
+    project_id?: string
+    project_name?: string
+    property_address?: string
+    municipality?: string
+    zoning_code?: string
+  }): Promise<PCOCValidation> =>
+    fetchWithAuth('/pcoc', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  update: (id: string, data: Partial<PCOCValidation>): Promise<PCOCValidation> =>
+    fetchWithAuth(`/pcoc/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  delete: (id: string) =>
+    fetchWithAuth(`/pcoc/${id}`, { method: 'DELETE' }),
+
+  getExemptCategories: (): Promise<{ obras_exentas: ExemptCategory[]; obras_menores: ExemptCategory[] }> =>
+    fetchWithAuth('/pcoc/exempt-categories'),
+
+  getDistrictParameters: (zoningCode: string): Promise<DistrictParameters> =>
+    fetchWithAuth(`/pcoc/district-parameters/${zoningCode}`),
+
+  analyzeFilter1: (id: string) =>
+    fetchWithAuth(`/pcoc/${id}/analyze-filter1`, { method: 'POST' }),
+
+  analyzeFilter2: (id: string) =>
+    fetchWithAuth(`/pcoc/${id}/analyze-filter2`, { method: 'POST' }),
+
+  analyzeFilter3: (id: string) =>
+    fetchWithAuth(`/pcoc/${id}/analyze-filter3`, { method: 'POST' }),
+
+  analyzeFilter4: (id: string) =>
+    fetchWithAuth(`/pcoc/${id}/analyze-filter4`, { method: 'POST' }),
+
+  generateResult: (id: string) =>
+    fetchWithAuth(`/pcoc/${id}/generate-result`, { method: 'POST' }),
+
+  getPdfUrl: (id: string) => getApiUrl(`/pcoc/${id}/report.pdf`),
+}

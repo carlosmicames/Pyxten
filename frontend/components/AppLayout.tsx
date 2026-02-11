@@ -66,6 +66,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const navItems = [
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/nueva-validacion', label: 'Nueva Validacion' },
+    { href: '/validacion-pcoc', label: 'Validacion PCOC' },
     { href: '/proyectos', label: 'Proyectos' },
     { href: '/asistente-ia', label: 'Asistente IA' },
   ]
