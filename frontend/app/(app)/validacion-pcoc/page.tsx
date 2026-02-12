@@ -423,7 +423,7 @@ export default function ValidacionPCOCPage() {
           </div>
 
           <button
-            onClick={handleStartValidation}
+            onClick={() => handleStartValidation()}
             disabled={saving || !projectName.trim()}
             className="btn-primary w-full"
           >
