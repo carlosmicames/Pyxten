@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import AppLayout from '@/components/AppLayout'
 import {
   documentsApi,
   pcocApi,
@@ -179,8 +178,7 @@ export default function ValidacionDocumentosPage() {
   // Selection screen
   if (validationType === 'select') {
     return (
-      <AppLayout>
-        <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Validacion de Documentos</h1>
           <p className="text-gray-600 mb-8">
             Seleccione el tipo de validacion para verificar los documentos requeridos.
@@ -231,14 +229,13 @@ export default function ValidacionDocumentosPage() {
             </button>
           </div>
         </div>
-      </AppLayout>
+      </div>
     )
   }
 
   // PCOC Document Validation Screen
   return (
-    <AppLayout>
-      <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
@@ -627,6 +624,6 @@ export default function ValidacionDocumentosPage() {
           </div>
         </div>
       </div>
-    </AppLayout>
+    </div>
   )
 }

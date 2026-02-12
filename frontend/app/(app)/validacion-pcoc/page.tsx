@@ -142,8 +142,8 @@ export default function ValidacionPCOCPage() {
     }
   }
 
-  const handleStartValidation = async () => {
-    if (!projectName.trim()) {
+  const handleStartValidation = async (skipProjectInfo = false) => {
+    if (!skipProjectInfo && !projectName.trim()) {
       setError('Debe ingresar un nombre de proyecto')
       return
     }
@@ -153,11 +153,11 @@ export default function ValidacionPCOCPage() {
       setError(null)
 
       const newValidation = await pcocApi.create({
-        project_id: selectedProjectId || undefined,
-        project_name: projectName,
-        property_address: propertyAddress,
-        municipality: municipality,
-        zoning_code: zoningCode,
+        project_id: skipProjectInfo ? undefined : (selectedProjectId || undefined),
+        project_name: skipProjectInfo ? 'Validacion sin proyecto' : projectName,
+        property_address: skipProjectInfo ? undefined : propertyAddress,
+        municipality: skipProjectInfo ? undefined : municipality,
+        zoning_code: skipProjectInfo ? undefined : zoningCode,
       })
 
       setPcocValidation(newValidation)
@@ -368,6 +368,14 @@ export default function ValidacionPCOCPage() {
             <p className="text-sm text-gray-500 mt-1">
               Si vincula un proyecto, se auto-completaran los datos de direccion y zonificacion.
             </p>
+            <button
+              type="button"
+              onClick={() => handleStartValidation(true)}
+              disabled={saving}
+              className="text-sm text-blue-600 hover:text-blue-800 hover:underline mt-2"
+            >
+              o continuar sin proyecto
+            </button>
           </div>
 
           {/* Project info */}

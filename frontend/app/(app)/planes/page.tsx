@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import AppLayout from '@/components/AppLayout'
 
 interface PlanFeature {
   name: string
@@ -88,9 +87,8 @@ export default function PlanesPage() {
   }
 
   return (
-    <AppLayout>
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
+    <div className="max-w-6xl mx-auto">
+      {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-gray-900 mb-3">Planes y Precios</h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
@@ -300,8 +298,7 @@ export default function PlanesPage() {
           >
             Contactar Soporte
           </a>
-        </div>
       </div>
-    </AppLayout>
+    </div>
   )
 }
