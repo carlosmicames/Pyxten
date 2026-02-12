@@ -179,55 +179,54 @@ export default function ValidacionDocumentosPage() {
   if (validationType === 'select') {
     return (
       <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Validacion de Documentos</h1>
-          <p className="text-gray-600 mb-8">
-            Seleccione el tipo de validacion para verificar los documentos requeridos.
-          </p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Validacion de Documentos</h1>
+        <p className="text-gray-600 mb-8">
+          Seleccione el tipo de validacion para verificar los documentos requeridos.
+        </p>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* PCOC Option */}
-            <button
-              onClick={() => handleSelectValidationType('pcoc')}
-              className="bg-white border-2 border-gray-200 rounded-lg p-6 text-left hover:border-blue-500 hover:shadow-md transition-all"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">PCOC</h2>
-                  <p className="text-sm text-gray-500">Permiso de Construccion</p>
-                </div>
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* PCOC Option */}
+          <button
+            onClick={() => handleSelectValidationType('pcoc')}
+            className="bg-white border-2 border-gray-200 rounded-lg p-6 text-left hover:border-blue-500 hover:shadow-md transition-all"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
               </div>
-              <p className="text-gray-600 text-sm">
-                Validacion de documentos para permisos de construccion. Incluye planos, certificaciones y Memorial Explicativo.
-              </p>
-            </button>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">PCOC</h2>
+                <p className="text-sm text-gray-500">Permiso de Construccion</p>
+              </div>
+            </div>
+            <p className="text-gray-600 text-sm">
+              Validacion de documentos para permisos de construccion. Incluye planos, certificaciones y Memorial Explicativo.
+            </p>
+          </button>
 
-            {/* Permiso Unico Option */}
-            <button
-              onClick={() => handleSelectValidationType('permiso_unico')}
-              className="bg-white border-2 border-gray-200 rounded-lg p-6 text-left hover:border-green-500 hover:shadow-md transition-all opacity-50 cursor-not-allowed"
-              disabled
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Permiso Unico</h2>
-                  <p className="text-sm text-gray-500">Proximamente</p>
-                </div>
+          {/* Permiso Unico Option */}
+          <button
+            onClick={() => handleSelectValidationType('permiso_unico')}
+            className="bg-white border-2 border-gray-200 rounded-lg p-6 text-left hover:border-green-500 hover:shadow-md transition-all opacity-50 cursor-not-allowed"
+            disabled
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
               </div>
-              <p className="text-gray-600 text-sm">
-                Validacion de documentos para Permiso Unico. Incluye legitimacion activa, identificacion y certificaciones.
-              </p>
-            </button>
-          </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Permiso Unico</h2>
+                <p className="text-sm text-gray-500">Proximamente</p>
+              </div>
+            </div>
+            <p className="text-gray-600 text-sm">
+              Validacion de documentos para Permiso Unico. Incluye legitimacion activa, identificacion y certificaciones.
+            </p>
+          </button>
         </div>
       </div>
     )
@@ -624,6 +623,5 @@ export default function ValidacionDocumentosPage() {
           </div>
         </div>
       </div>
-    </div>
-  )
-}
+    )
+  }
