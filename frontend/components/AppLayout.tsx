@@ -67,7 +67,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/nueva-validacion', label: 'Nueva Validacion' },
     { href: '/validacion-pcoc', label: 'Validacion PCOC' },
+    { href: '/validacion-documentos', label: 'Validacion de Documentos' },
     { href: '/proyectos', label: 'Proyectos' },
+    { href: '/planes', label: 'Planes' },
     { href: '/asistente-ia', label: 'Asistente IA' },
   ]
 

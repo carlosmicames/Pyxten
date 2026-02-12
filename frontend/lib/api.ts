@@ -289,3 +289,130 @@ export const pcocApi = {
 
   getPdfUrl: (id: string) => getApiUrl(`/pcoc/${id}/report.pdf`),
 }
+
+// Document Validation types
+export interface DocumentStatus {
+  required: boolean
+  optional: boolean
+  conditional: string | null
+  uploaded: boolean
+  file_url: string | null
+  file_name: string | null
+  verified: boolean
+  notes: string
+}
+
+export interface MemorialExplicativo {
+  generated: boolean
+  project_description: string | null
+  location_description: string | null
+  zoning_info: string | null
+  construction_details: string | null
+  environmental_compliance: string | null
+  permit_type_justification: string | null
+  additional_notes: string | null
+  pdf_url: string | null
+}
+
+export interface DocumentValidation {
+  id: string
+  user_id: string
+  pcoc_validation_id: string | null
+  validation_type: string
+  project_name: string | null
+  property_address: string | null
+  municipality: string | null
+  status: string
+  documents: Record<string, DocumentStatus> | null
+  memorial_explicativo: MemorialExplicativo | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface DocumentRequirement {
+  code: string
+  name: string
+  description: string
+  required: boolean
+  conditional: string | null
+}
+
+export interface DocumentValidationResult {
+  is_complete: boolean
+  total_required: number
+  total_optional: number
+  uploaded_required: number
+  uploaded_optional: number
+  verified_required: number
+  verified_optional: number
+  missing_required: Array<{ code: string; name: string; description: string }>
+  missing_optional: Array<{ code: string; name: string; description: string; conditional: string | null }>
+  progress_percent: number
+}
+
+// Document Validation API
+export const documentsApi = {
+  list: (validationType?: string, limit: number = 50): Promise<DocumentValidation[]> => {
+    const params = new URLSearchParams()
+    if (validationType) params.set('validation_type', validationType)
+    params.set('limit', limit.toString())
+    return fetchWithAuth(`/documents?${params}`)
+  },
+
+  get: (id: string): Promise<DocumentValidation> =>
+    fetchWithAuth(`/documents/${id}`),
+
+  create: (data: {
+    pcoc_validation_id?: string
+    validation_type?: string
+    project_name?: string
+    property_address?: string
+    municipality?: string
+  }): Promise<DocumentValidation> =>
+    fetchWithAuth('/documents', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  update: (id: string, data: Partial<DocumentValidation>): Promise<DocumentValidation> =>
+    fetchWithAuth(`/documents/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  delete: (id: string) =>
+    fetchWithAuth(`/documents/${id}`, { method: 'DELETE' }),
+
+  getPCOCRequirements: (): Promise<DocumentRequirement[]> =>
+    fetchWithAuth('/documents/requirements/pcoc'),
+
+  getPermisoUnicoRequirements: (): Promise<DocumentRequirement[]> =>
+    fetchWithAuth('/documents/requirements/permiso-unico'),
+
+  updateDocumentStatus: (
+    id: string,
+    docCode: string,
+    data: {
+      uploaded?: boolean
+      file_url?: string
+      file_name?: string
+      verified?: boolean
+      notes?: string
+    }
+  ) => {
+    const params = new URLSearchParams()
+    if (data.uploaded !== undefined) params.set('uploaded', String(data.uploaded))
+    if (data.file_url) params.set('file_url', data.file_url)
+    if (data.file_name) params.set('file_name', data.file_name)
+    if (data.verified !== undefined) params.set('verified', String(data.verified))
+    if (data.notes) params.set('notes', data.notes)
+    return fetchWithAuth(`/documents/${id}/update-document/${docCode}?${params}`, { method: 'POST' })
+  },
+
+  validate: (id: string): Promise<{ validation_result: DocumentValidationResult; status: string }> =>
+    fetchWithAuth(`/documents/${id}/validate`, { method: 'POST' }),
+
+  generateMemorial: (id: string): Promise<{ memorial_explicativo: MemorialExplicativo }> =>
+    fetchWithAuth(`/documents/${id}/generate-memorial`, { method: 'POST' }),
+}

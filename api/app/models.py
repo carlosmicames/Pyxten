@@ -122,3 +122,40 @@ class PCOCValidation(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     project = relationship("Project")
+
+
+class DocumentValidation(Base):
+    """
+    Document Validation for PCOC and Permiso Unico
+    Tracks required documents checklist and Memorial Explicativo generation
+    """
+    __tablename__ = "document_validations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    pcoc_validation_id = Column(UUID(as_uuid=True), ForeignKey("pcoc_validations.id", ondelete="SET NULL"))
+
+    # Validation type: pcoc, permiso_unico
+    validation_type = Column(Text, default="pcoc")
+
+    # Basic project info
+    project_name = Column(Text)
+    property_address = Column(Text)
+    municipality = Column(Text)
+
+    # Status: en_progreso, completo, requiere_documentos
+    status = Column(Text, default="en_progreso")
+
+    # Documents checklist (JSONB)
+    documents = Column(JSONB, default=dict)
+
+    # Memorial Explicativo (auto-generated content)
+    memorial_explicativo = Column(JSONB, default=dict)
+
+    # Additional notes
+    notes = Column(Text)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    pcoc_validation = relationship("PCOCValidation")

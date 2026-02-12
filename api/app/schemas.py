@@ -293,6 +293,100 @@ class PCOCValidationListResponse(BaseModel):
 
 
 # ============================================================================
+# Document Validations
+# ============================================================================
+
+class DocumentStatus(BaseModel):
+    """Status of a single document in the checklist"""
+    required: bool = True
+    optional: bool = False
+    uploaded: bool = False
+    file_url: Optional[str] = None
+    file_name: Optional[str] = None
+    verified: bool = False
+    notes: Optional[str] = None
+
+
+class MemorialExplicativoContent(BaseModel):
+    """Content structure for Memorial Explicativo"""
+    generated: bool = False
+    project_description: Optional[str] = None
+    location_description: Optional[str] = None
+    zoning_info: Optional[str] = None
+    construction_details: Optional[str] = None
+    environmental_compliance: Optional[str] = None
+    permit_type_justification: Optional[str] = None
+    additional_notes: Optional[str] = None
+    pdf_url: Optional[str] = None
+
+
+class DocumentValidationCreate(BaseModel):
+    """Create a new document validation"""
+    pcoc_validation_id: Optional[UUID] = None
+    validation_type: str = "pcoc"
+    project_name: Optional[str] = None
+    property_address: Optional[str] = None
+    municipality: Optional[str] = None
+
+
+class DocumentValidationUpdate(BaseModel):
+    """Update a document validation"""
+    project_name: Optional[str] = None
+    property_address: Optional[str] = None
+    municipality: Optional[str] = None
+    status: Optional[str] = None
+    documents: Optional[Dict[str, Any]] = None
+    memorial_explicativo: Optional[Dict[str, Any]] = None
+    notes: Optional[str] = None
+
+
+class DocumentValidationResponse(BaseModel):
+    """Document validation response"""
+    id: UUID
+    user_id: UUID
+    pcoc_validation_id: Optional[UUID] = None
+    validation_type: str = "pcoc"
+    project_name: Optional[str] = None
+    property_address: Optional[str] = None
+    municipality: Optional[str] = None
+    status: str = "en_progreso"
+    documents: Optional[Dict[str, Any]] = None
+    memorial_explicativo: Optional[Dict[str, Any]] = None
+    notes: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class DocumentValidationListResponse(BaseModel):
+    """Document validation list item"""
+    id: UUID
+    user_id: UUID
+    pcoc_validation_id: Optional[UUID] = None
+    validation_type: str = "pcoc"
+    project_name: Optional[str] = None
+    property_address: Optional[str] = None
+    municipality: Optional[str] = None
+    status: str = "en_progreso"
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class DocumentRequirement(BaseModel):
+    """A single document requirement definition"""
+    code: str
+    name: str
+    description: str
+    required: bool = True
+    conditional: Optional[str] = None  # Condition for when document is required
+
+
+# ============================================================================
 # Generic
 # ============================================================================
 
