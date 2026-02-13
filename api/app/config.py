@@ -26,7 +26,10 @@ class Settings(BaseSettings):
 
     # App
     debug: bool = False
-    app_url: str = "https://pyxten.vercel.app"
+    app_url: str = "https://pyxten.com"
+
+    # Admin emails (comma-separated) - bypass subscription checks
+    admin_emails: str = "cj.micames@gmail.com,info@pyxten.com"
 
     # Stripe
     stripe_secret_key: str = ""

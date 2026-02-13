@@ -129,6 +129,19 @@ async def get_current_user(
         )
 
 
+def _get_admin_emails() -> set:
+    """Get set of admin emails that bypass subscription checks."""
+    admin_str = settings.admin_emails if hasattr(settings, 'admin_emails') else ""
+    return {email.strip().lower() for email in admin_str.split(",") if email.strip()}
+
+
+def is_admin_user(email: str | None) -> bool:
+    """Check if email is an admin user with full access."""
+    if not email:
+        return False
+    return email.lower() in _get_admin_emails()
+
+
 def is_active_subscriber(user_id: UUID, db) -> bool:
     """
     Check if user has an active subscription (paid tier).
@@ -146,7 +159,12 @@ def require_active_subscription(user: UserInfo, db) -> None:
     """
     Dependency function to require active subscription.
     Raises HTTPException if user doesn't have active subscription.
+    Admin emails bypass this check entirely.
     """
+    # Admin users bypass subscription check
+    if is_admin_user(user.email):
+        return
+
     if not is_active_subscriber(user.user_id, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
