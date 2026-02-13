@@ -416,3 +416,30 @@ export const documentsApi = {
   generateMemorial: (id: string): Promise<{ memorial_explicativo: MemorialExplicativo }> =>
     fetchWithAuth(`/documents/${id}/generate-memorial`, { method: 'POST' }),
 }
+
+// Billing / Subscription types
+export interface Subscription {
+  user_id: string
+  tier: 'free' | 'professional' | 'empresarial'
+  status: 'active' | 'inactive' | 'canceled' | 'past_due' | 'trialing' | 'incomplete'
+  stripe_customer_id: string | null
+  stripe_subscription_id: string | null
+  current_period_end: string | null
+}
+
+// Billing API
+export const billingApi = {
+  getSubscription: (): Promise<Subscription> =>
+    fetchWithAuth('/billing/subscription'),
+
+  createCheckoutSession: (tier: 'professional' | 'empresarial', period: 'monthly' | 'annual'): Promise<{ url: string }> =>
+    fetchWithAuth('/billing/create-checkout-session', {
+      method: 'POST',
+      body: JSON.stringify({ tier, period }),
+    }),
+
+  createPortalSession: (): Promise<{ url: string }> =>
+    fetchWithAuth('/billing/create-portal-session', {
+      method: 'POST',
+    }),
+}

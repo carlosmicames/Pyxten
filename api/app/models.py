@@ -159,3 +159,31 @@ class DocumentValidation(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     pcoc_validation = relationship("PCOCValidation")
+
+
+class Subscription(Base):
+    """
+    User subscription status for billing
+    Tracks Stripe subscription information and tier access
+    """
+    __tablename__ = "subscriptions"
+
+    user_id = Column(UUID(as_uuid=True), primary_key=True)
+    tier = Column(Text, nullable=False, default="free")  # free, professional, empresarial
+    status = Column(Text, nullable=False, default="inactive")  # active, inactive, canceled, past_due, trialing, incomplete
+    stripe_customer_id = Column(Text)
+    stripe_subscription_id = Column(Text)
+    current_period_end = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class StripeEvent(Base):
+    """
+    Stripe webhook event log for idempotency
+    Prevents duplicate processing of webhook events
+    """
+    __tablename__ = "stripe_events"
+
+    event_id = Column(Text, primary_key=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

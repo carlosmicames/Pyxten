@@ -127,3 +127,28 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Auth error: {str(e)}",
         )
+
+
+def is_active_subscriber(user_id: UUID, db) -> bool:
+    """
+    Check if user has an active subscription (paid tier).
+    Returns True if status is 'active' or 'trialing'.
+    """
+    from app.models import Subscription  # Import here to avoid circular import
+
+    subscription = db.query(Subscription).filter(Subscription.user_id == user_id).first()
+    if not subscription:
+        return False
+    return subscription.status in {"active", "trialing"}
+
+
+def require_active_subscription(user: UserInfo, db) -> None:
+    """
+    Dependency function to require active subscription.
+    Raises HTTPException if user doesn't have active subscription.
+    """
+    if not is_active_subscriber(user.user_id, db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Se requiere una suscripcion activa para acceder a esta funcion. Por favor actualice su plan.",
+        )

@@ -387,6 +387,39 @@ class DocumentRequirement(BaseModel):
 
 
 # ============================================================================
+# Billing / Subscriptions
+# ============================================================================
+
+class CheckoutSessionRequest(BaseModel):
+    """Request to create a Stripe Checkout session"""
+    tier: str = Field(..., pattern="^(professional|empresarial)$", description="Subscription tier")
+    period: str = Field(..., pattern="^(monthly|annual)$", description="Billing period")
+
+
+class CheckoutSessionResponse(BaseModel):
+    """Response with Stripe Checkout URL"""
+    url: str
+
+
+class PortalSessionResponse(BaseModel):
+    """Response with Stripe Customer Portal URL"""
+    url: str
+
+
+class SubscriptionResponse(BaseModel):
+    """User subscription status"""
+    user_id: UUID
+    tier: str = "free"
+    status: str = "inactive"
+    stripe_customer_id: Optional[str] = None
+    stripe_subscription_id: Optional[str] = None
+    current_period_end: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ============================================================================
 # Generic
 # ============================================================================
 

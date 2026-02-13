@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   documentsApi,
   pcocApi,
@@ -9,6 +9,7 @@ import {
   DocumentValidationResult,
   PCOCValidation,
 } from '@/lib/api'
+import { uploadDocument, deleteDocument } from '@/lib/storage'
 
 type ValidationTypeOption = 'select' | 'pcoc' | 'permiso_unico'
 
@@ -22,8 +23,13 @@ export default function ValidacionDocumentosPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Upload state
+  const [uploadingDoc, setUploadingDoc] = useState<string | null>(null)
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+
   // Form state for creating new validation
   const [showNewForm, setShowNewForm] = useState(false)
+  const [showPcocLinkModal, setShowPcocLinkModal] = useState(false)
   const [newFormData, setNewFormData] = useState({
     pcoc_validation_id: '',
     project_name: '',
@@ -124,6 +130,82 @@ export default function ValidacionDocumentosPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al actualizar documento')
     }
+  }
+
+  const handleFileUpload = async (docCode: string, file: File) => {
+    if (!selectedValidation) return
+
+    setUploadingDoc(docCode)
+    setError(null)
+
+    try {
+      const uploadResult = await uploadDocument(file, selectedValidation.id, docCode)
+
+      if (!uploadResult.success) {
+        setError(uploadResult.error || 'Error al subir el archivo')
+        return
+      }
+
+      // Update the document status in the backend
+      const result = await documentsApi.updateDocumentStatus(selectedValidation.id, docCode, {
+        uploaded: true,
+        file_url: uploadResult.url,
+        file_name: uploadResult.fileName,
+      })
+
+      // Update local state
+      setSelectedValidation({
+        ...selectedValidation,
+        documents: result.documents,
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al subir el documento')
+    } finally {
+      setUploadingDoc(null)
+    }
+  }
+
+  const handleRemoveDocument = async (docCode: string) => {
+    if (!selectedValidation) return
+
+    const docStatus = selectedValidation.documents?.[docCode]
+    if (!docStatus?.file_url) return
+
+    if (!confirm('Esta seguro que desea eliminar este documento?')) return
+
+    try {
+      // Delete from storage
+      await deleteDocument(docStatus.file_url)
+
+      // Update backend
+      const result = await documentsApi.updateDocumentStatus(selectedValidation.id, docCode, {
+        uploaded: false,
+        file_url: '',
+        file_name: '',
+      })
+
+      // Update local state
+      setSelectedValidation({
+        ...selectedValidation,
+        documents: result.documents,
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar el documento')
+    }
+  }
+
+  const handleLinkPcocValidation = async (pcocId: string) => {
+    const pcoc = pcocValidations.find(p => p.id === pcocId)
+    if (!pcoc) return
+
+    setNewFormData({
+      pcoc_validation_id: pcocId,
+      project_name: pcoc.project_name || '',
+      property_address: pcoc.property_address || '',
+      municipality: pcoc.municipality || '',
+    })
+    setShowPcocLinkModal(false)
+    setShowNewForm(true)
   }
 
   const handleValidateDocuments = async () => {
@@ -255,12 +337,25 @@ export default function ValidacionDocumentosPage() {
               </p>
             </div>
           </div>
-          <button
-            onClick={() => setShowNewForm(true)}
-            className="btn-primary"
-          >
-            Nueva Validacion
-          </button>
+          <div className="flex gap-2">
+            {validationType === 'pcoc' && pcocValidations.length > 0 && (
+              <button
+                onClick={() => setShowPcocLinkModal(true)}
+                className="btn-secondary flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                Vincular PCOC
+              </button>
+            )}
+            <button
+              onClick={() => setShowNewForm(true)}
+              className="btn-primary"
+            >
+              Nueva Validacion
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -359,6 +454,53 @@ export default function ValidacionDocumentosPage() {
                   {loading ? 'Creando...' : 'Crear'}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* PCOC Link Modal */}
+        {showPcocLinkModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Vincular Validacion PCOC</h2>
+                <button
+                  onClick={() => setShowPcocLinkModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Seleccione una validacion PCOC completada para vincular los documentos.
+              </p>
+
+              {pcocValidations.length === 0 ? (
+                <p className="text-gray-500 text-sm py-4">No hay validaciones PCOC completadas.</p>
+              ) : (
+                <div className="space-y-2">
+                  {pcocValidations.map(pcoc => (
+                    <button
+                      key={pcoc.id}
+                      onClick={() => handleLinkPcocValidation(pcoc.id)}
+                      className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                    >
+                      <div className="font-medium text-gray-900">
+                        {pcoc.project_name || 'Sin nombre'}
+                      </div>
+                      <div className="text-sm text-gray-500 mt-1">
+                        {pcoc.property_address || 'Sin direccion'}
+                        {pcoc.municipality && ` - ${pcoc.municipality}`}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        {new Date(pcoc.created_at).toLocaleDateString('es-PR')}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -476,6 +618,7 @@ export default function ValidacionDocumentosPage() {
                     {requirements.map(req => {
                       const docStatus = selectedValidation.documents?.[req.code]
                       const isUploaded = docStatus?.uploaded || false
+                      const hasFile = docStatus?.file_url || false
 
                       return (
                         <div
@@ -507,6 +650,65 @@ export default function ValidacionDocumentosPage() {
                                 Condicion: {req.conditional}
                               </p>
                             )}
+                            {/* Uploaded file info */}
+                            {hasFile && docStatus?.file_name && (
+                              <div className="flex items-center gap-2 mt-2 text-sm">
+                                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <a
+                                  href={docStatus.file_url!}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline truncate max-w-[200px]"
+                                >
+                                  {docStatus.file_name}
+                                </a>
+                                <button
+                                  onClick={() => handleRemoveDocument(req.code)}
+                                  className="text-red-500 hover:text-red-700"
+                                  title="Eliminar documento"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          {/* Upload button */}
+                          <div className="flex-shrink-0">
+                            <input
+                              type="file"
+                              accept="application/pdf"
+                              ref={(el) => { fileInputRefs.current[req.code] = el }}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0]
+                                if (file) handleFileUpload(req.code, file)
+                                e.target.value = ''
+                              }}
+                              className="hidden"
+                            />
+                            <button
+                              onClick={() => fileInputRefs.current[req.code]?.click()}
+                              disabled={uploadingDoc === req.code}
+                              className={`p-2 rounded-lg transition-colors ${
+                                hasFile
+                                  ? 'text-green-600 bg-green-100 hover:bg-green-200'
+                                  : 'text-gray-500 bg-gray-100 hover:bg-gray-200'
+                              } ${uploadingDoc === req.code ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              title={hasFile ? 'Reemplazar documento' : 'Subir documento PDF'}
+                            >
+                              {uploadingDoc === req.code ? (
+                                <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                              ) : (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                </svg>
+                              )}
+                            </button>
                           </div>
                         </div>
                       )

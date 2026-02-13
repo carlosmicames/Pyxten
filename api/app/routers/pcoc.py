@@ -8,7 +8,7 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.auth import get_current_user
+from app.auth import get_current_user, require_active_subscription
 from app.models import PCOCValidation, Project
 from app.schemas import (
     PCOCValidationCreate,
@@ -47,6 +47,9 @@ def create_pcoc_validation(
     db: Session = Depends(get_db),
 ):
     """Create a new PCOC validation"""
+    # Require active subscription for PCOC validation
+    require_active_subscription(user, db)
+
     # If project_id provided, fetch project data
     project_name = data.project_name
     property_address = data.property_address
@@ -170,6 +173,8 @@ def analyze_filter1(
     Analyze Filter 1 data and determine if work is exempt.
     Updates the validation with the analysis result.
     """
+    require_active_subscription(user, db)
+
     validation = (
         db.query(PCOCValidation)
         .filter(PCOCValidation.id == pcoc_id, PCOCValidation.user_id == user.user_id)
@@ -207,6 +212,8 @@ def analyze_filter2(
     """
     Analyze Filter 2 data and determine required recommendations.
     """
+    require_active_subscription(user, db)
+
     validation = (
         db.query(PCOCValidation)
         .filter(PCOCValidation.id == pcoc_id, PCOCValidation.user_id == user.user_id)
@@ -244,6 +251,8 @@ def analyze_filter3(
     """
     Analyze Filter 3 data and determine if ministerial or discretionary.
     """
+    require_active_subscription(user, db)
+
     validation = (
         db.query(PCOCValidation)
         .filter(PCOCValidation.id == pcoc_id, PCOCValidation.user_id == user.user_id)
@@ -281,6 +290,8 @@ def analyze_filter4(
     """
     Analyze Filter 4 data for environmental compliance (categorical exclusions).
     """
+    require_active_subscription(user, db)
+
     validation = (
         db.query(PCOCValidation)
         .filter(PCOCValidation.id == pcoc_id, PCOCValidation.user_id == user.user_id)
@@ -316,6 +327,8 @@ def generate_result(
     """
     Generate the final PCOC validation result based on all filters.
     """
+    require_active_subscription(user, db)
+
     validation = (
         db.query(PCOCValidation)
         .filter(PCOCValidation.id == pcoc_id, PCOCValidation.user_id == user.user_id)
@@ -347,6 +360,8 @@ def get_pcoc_report_pdf(
     db: Session = Depends(get_db),
 ):
     """Generate and return PDF report for a PCOC validation"""
+    require_active_subscription(user, db)
+
     validation = (
         db.query(PCOCValidation)
         .filter(PCOCValidation.id == pcoc_id, PCOCValidation.user_id == user.user_id)

@@ -26,6 +26,15 @@ class Settings(BaseSettings):
 
     # App
     debug: bool = False
+    app_url: str = "https://pyxten.vercel.app"
+
+    # Stripe
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_price_professional_monthly: str = ""
+    stripe_price_professional_annual: str = ""
+    stripe_price_empresarial_monthly: str = ""
+    stripe_price_empresarial_annual: str = ""
 
     @property
     def cors_origins(self) -> List[str]:

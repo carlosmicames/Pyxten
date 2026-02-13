@@ -9,7 +9,7 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.auth import get_current_user
+from app.auth import get_current_user, require_active_subscription
 from app.models import DocumentValidation, PCOCValidation
 from app.schemas import (
     DocumentValidationCreate,
@@ -64,6 +64,8 @@ def create_document_validation(
     db: Session = Depends(get_db),
 ):
     """Create a new document validation"""
+    require_active_subscription(user, db)
+
     # If pcoc_validation_id provided, fetch PCOC data
     project_name = data.project_name
     property_address = data.property_address
@@ -207,6 +209,8 @@ def validate_documents(
     db: Session = Depends(get_db),
 ):
     """Validate the completeness of all documents"""
+    require_active_subscription(user, db)
+
     validation = (
         db.query(DocumentValidation)
         .filter(DocumentValidation.id == doc_id, DocumentValidation.user_id == user.user_id)
@@ -246,6 +250,8 @@ def generate_memorial_explicativo(
     db: Session = Depends(get_db),
 ):
     """Generate Memorial Explicativo content for the document validation"""
+    require_active_subscription(user, db)
+
     validation = (
         db.query(DocumentValidation)
         .filter(DocumentValidation.id == doc_id, DocumentValidation.user_id == user.user_id)
