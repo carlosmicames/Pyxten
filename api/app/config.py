@@ -21,8 +21,9 @@ class Settings(BaseSettings):
     google_maps_api_key: str = ""
     openai_api_key: str = ""
 
-    # CORS
-    cors_allowed_origins: str = "http://localhost:3000"
+    # CORS - comma-separated list of allowed origins
+    # Default includes production domains + localhost for dev
+    cors_allowed_origins: str = "https://pyxten.com,https://www.pyxten.com,http://localhost:3000,http://localhost:3001"
 
     # App
     debug: bool = False

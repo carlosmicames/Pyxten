@@ -3,14 +3,13 @@ Pyxten API - FastAPI Application
 """
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 import logging
 
 from app.config import get_settings
 from app.routers import projects, validations, folders, chat, address, pcoc, documents, billing
 
 
-# Configure logging for CORS debugging
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -22,17 +21,19 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS: Allow Vercel + local dev
-# Applied ONCE before any routers
+# CORS Configuration
+# Uses settings.cors_origins from env var CORS_ALLOWED_ORIGINS
+# Default includes: https://pyxten.com, https://www.pyxten.com, localhost:3000, localhost:3001
+cors_origins = settings.cors_origins
+logger.info(f"CORS allowed origins: {cors_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-    ],
+    allow_origins=cors_origins,
+    # Also allow Vercel preview deployments
     allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_methods=["*"],  # Allow all methods including OPTIONS
     allow_headers=["*"],
 )
 
@@ -62,31 +63,14 @@ def cors_test(request: Request):
     """
     Test endpoint to verify CORS is working.
     Returns request headers and origin info for debugging.
+    CORSMiddleware handles OPTIONS preflight automatically.
     """
     origin = request.headers.get("origin", "no-origin-header")
-    logger.info(f"CORS test hit from origin: {origin}")
+    if settings.debug:
+        logger.info(f"CORS test from origin: {origin}")
     return {
         "status": "ok",
         "message": "CORS test endpoint reached",
         "origin_received": origin,
-        "all_headers": dict(request.headers),
+        "allowed_origins": cors_origins,
     }
-
-
-@app.options("/cors-test")
-def cors_test_preflight(request: Request):
-    """
-    Explicit OPTIONS handler for debugging preflight.
-    Note: CORSMiddleware should handle this, but this logs if it doesn't.
-    """
-    origin = request.headers.get("origin", "no-origin-header")
-    logger.info(f"CORS preflight OPTIONS hit from origin: {origin}")
-    return JSONResponse(
-        content={"message": "Preflight OK"},
-        headers={
-            "Access-Control-Allow-Origin": origin,
-            "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
-            "Access-Control-Allow-Headers": "*",
-            "Access-Control-Allow-Credentials": "true",
-        },
-    )
