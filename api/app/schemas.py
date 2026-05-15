@@ -69,6 +69,8 @@ class AddressValidationResponse(BaseModel):
     catastro_number: Optional[str] = None
     municipality: Optional[str] = None
     overlays: Optional[List[Dict[str, Any]]] = None
+    calificacion: Optional[str] = None
+    calificacion_name: Optional[str] = None
     gis_map_url: str = "https://gis.jp.pr.gov/mipr/"
     disclaimer: str = "Debe verificar esta informacion en el mapa oficial para confirmar su exactitud antes de continuar."
     error: Optional[str] = None

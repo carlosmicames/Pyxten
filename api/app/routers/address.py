@@ -28,9 +28,7 @@ def validate_address(
     1. Geocodes the address using Google Maps API
     2. Fetches parcel/catastro info from ArcGIS CRIM
     3. Fetches overlay zones (flood, historic, coastal) from ArcGIS
-
-    Note: This does NOT return zoning district - the user must manually select
-    the district/calificacion from the dropdown.
+    4. Fetches zoning district (calificacion) from MIPR Calificación layer
     """
     address_validator = AddressValidator()
     arcgis_client = ArcGISPRClient()
@@ -64,6 +62,14 @@ def validate_address(
     overlay_result = arcgis_client.get_overlay_zones(lat, lng)
     overlays = overlay_result.get("overlays", [])
 
+    # Step 4: Get zoning district (calificacion) from MIPR Calificación layer
+    zoning_result = arcgis_client.get_zoning_district(lat, lng)
+    calificacion = None
+    calificacion_name = None
+    if zoning_result.get("success"):
+        calificacion = zoning_result.get("district_code")
+        calificacion_name = zoning_result.get("district_name")
+
     return AddressValidationResponse(
         valid=True,
         latitude=lat,
@@ -72,6 +78,8 @@ def validate_address(
         catastro_number=catastro_number,
         municipality=municipality_from_parcel or request.municipality,
         overlays=overlays,
+        calificacion=calificacion,
+        calificacion_name=calificacion_name,
         gis_map_url="https://gis.jp.pr.gov/mipr/",
         disclaimer="Debe verificar esta informacion en el mapa oficial para confirmar su exactitud antes de continuar.",
     )

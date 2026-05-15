@@ -82,6 +82,7 @@ export default function NuevaValidacionPage() {
 
   // Address validation results (hidden until validated)
   const [addressValidated, setAddressValidated] = useState(false)
+  const [calificacionAutoDetected, setCalificacionAutoDetected] = useState(false)
   const [catastroNumber, setCatastroNumber] = useState('')
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null)
 
@@ -100,6 +101,7 @@ export default function NuevaValidacionPage() {
   // Reset address validation when address or municipality changes
   useEffect(() => {
     setAddressValidated(false)
+    setCalificacionAutoDetected(false)
     setCatastroNumber('')
     setCoordinates(null)
   }, [address, municipality])
@@ -140,6 +142,15 @@ export default function NuevaValidacionPage() {
         setCoordinates({ lat: result.latitude, lng: result.longitude })
         setCatastroNumber(result.catastro_number || '')
         setAddressValidated(true)
+
+        // Auto-populate calificacion if ArcGIS returned one and it's valid for the municipality
+        if (result.calificacion) {
+          const available = getCalificacionesForMunicipality(municipality)
+          if (available.includes(result.calificacion)) {
+            setCalificacion(result.calificacion)
+            setCalificacionAutoDetected(true)
+          }
+        }
       } else {
         setError(result.error || 'No se pudo validar la direccion')
       }
@@ -451,7 +462,7 @@ export default function NuevaValidacionPage() {
             <select
               className="input-field"
               value={calificacion}
-              onChange={(e) => setCalificacion(e.target.value)}
+              onChange={(e) => { setCalificacion(e.target.value); setCalificacionAutoDetected(false) }}
               required
             >
               <option value="">-- Seleccionar calificacion --</option>
@@ -461,6 +472,14 @@ export default function NuevaValidacionPage() {
                 </option>
               ))}
             </select>
+            {calificacionAutoDetected && (
+              <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Calificacion detectada automaticamente desde MIPR · Puede cambiarla si es necesario
+              </p>
+            )}
             <p className="text-xs text-gray-500 mt-1">
               {hasPOT
                 ? `${municipality} tiene su propio Plan de Ordenamiento Territorial (POT). Verifique la calificacion en el mapa MIPR.`
