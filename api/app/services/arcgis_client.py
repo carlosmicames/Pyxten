@@ -35,13 +35,12 @@ class ArcGISPRClient:
         """Query MIPR Calificación layer for zoning district at coordinates"""
         x, y = self._lat_lng_to_web_mercator(lat, lng)
 
+        # Primary query: point-within-polygon (no buffer)
         params = {
             "geometry": f"{x},{y}",
             "geometryType": "esriGeometryPoint",
             "inSR": "3857",
-            "spatialRel": "esriSpatialRelIntersects",
-            "distance": 10,
-            "units": "esriSRUnit_Meter",
+            "spatialRel": "esriSpatialRelWithin",
             "outFields": "*",
             "returnGeometry": "false",
             "f": "json",
@@ -62,6 +61,25 @@ class ArcGISPRClient:
 
             features = data.get("features", [])
 
+            # Fallback: if no result with esriSpatialRelWithin, try intersects with 50m buffer
+            # (handles points near polygon boundaries)
+            if not features:
+                fallback_params = {
+                    "geometry": f"{x},{y}",
+                    "geometryType": "esriGeometryPoint",
+                    "inSR": "3857",
+                    "spatialRel": "esriSpatialRelIntersects",
+                    "distance": 50,
+                    "units": "esriSRUnit_Meter",
+                    "outFields": "*",
+                    "returnGeometry": "false",
+                    "f": "json",
+                }
+                fallback_response = self.client.get(self.CALIFICACION_URL, params=fallback_params)
+                fallback_response.raise_for_status()
+                fallback_data = fallback_response.json()
+                features = fallback_data.get("features", [])
+
             if not features:
                 return {
                     "success": False,
@@ -72,21 +90,20 @@ class ArcGISPRClient:
 
             attrs = features[0].get("attributes", {})
 
+            # Actual field names in MIPR/Calificacion MapServer layer 0:
+            # cali = calificacion code, descrip = description
             district_code = (
-                attrs.get("CALIFICACION")
+                attrs.get("cali")
+                or attrs.get("CALIFICACION")
                 or attrs.get("Calificacion")
-                or attrs.get("DISTRITO")
-                or attrs.get("Distrito")
                 or attrs.get("CODIGO")
-                or attrs.get("Codigo")
                 or attrs.get("COD_CALIF")
             )
 
             district_name = (
-                attrs.get("DESCRIPCION")
+                attrs.get("descrip")
+                or attrs.get("DESCRIPCION")
                 or attrs.get("Descripcion")
-                or attrs.get("NOMBRE")
-                or attrs.get("Nombre")
                 or attrs.get("DESC_CALIF")
             )
 
