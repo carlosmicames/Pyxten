@@ -83,6 +83,7 @@ export default function NuevaValidacionPage() {
   // Address validation results (hidden until validated)
   const [addressValidated, setAddressValidated] = useState(false)
   const [calificacionAutoDetected, setCalificacionAutoDetected] = useState(false)
+  const [calificacionMIPRHint, setCalificacionMIPRHint] = useState<string | null>(null)
   const [catastroNumber, setCatastroNumber] = useState('')
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null)
 
@@ -102,6 +103,7 @@ export default function NuevaValidacionPage() {
   useEffect(() => {
     setAddressValidated(false)
     setCalificacionAutoDetected(false)
+    setCalificacionMIPRHint(null)
     setCatastroNumber('')
     setCoordinates(null)
   }, [address, municipality])
@@ -149,6 +151,10 @@ export default function NuevaValidacionPage() {
           if (available.includes(result.calificacion)) {
             setCalificacion(result.calificacion)
             setCalificacionAutoDetected(true)
+            setCalificacionMIPRHint(null)
+          } else {
+            // MIPR returned a code not in the dropdown list — show it as a hint
+            setCalificacionMIPRHint(result.calificacion)
           }
         }
       } else {
@@ -462,7 +468,7 @@ export default function NuevaValidacionPage() {
             <select
               className="input-field"
               value={calificacion}
-              onChange={(e) => { setCalificacion(e.target.value); setCalificacionAutoDetected(false) }}
+              onChange={(e) => { setCalificacion(e.target.value); setCalificacionAutoDetected(false); setCalificacionMIPRHint(null) }}
               required
             >
               <option value="">-- Seleccionar calificacion --</option>
@@ -478,6 +484,14 @@ export default function NuevaValidacionPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 Calificacion detectada automaticamente desde MIPR · Puede cambiarla si es necesario
+              </p>
+            )}
+            {calificacionMIPRHint && !calificacionAutoDetected && (
+              <p className="text-xs text-amber-600 mt-1 flex items-start gap-1">
+                <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                MIPR detectó calificación: <strong className="mx-0.5">{calificacionMIPRHint}</strong> · No está en la lista para este municipio. Seleccione manualmente o verifique en el mapa MIPR.
               </p>
             )}
             <p className="text-xs text-gray-500 mt-1">

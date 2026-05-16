@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(& \"C:\\\\nvm4w\\\\nodejs\\\\npx.cmd\" tsc --noEmit 2>&1)"
+    ]
+  }
+}
