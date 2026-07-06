@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   pcocApi,
@@ -22,7 +22,8 @@ const TABS: { id: TabType; label: string; step: number }[] = [
   { id: 'result', label: 'Resultado', step: 5 },
 ]
 
-export default function ValidacionPCOCPage() {
+// Inner component that uses useSearchParams — must be wrapped in <Suspense>
+function ValidacionPCOCContent() {
   const searchParams = useSearchParams()
   const pcocIdParam = searchParams.get('id')
 
@@ -1059,5 +1060,17 @@ function ResultContent({
         </button>
       </div>
     </div>
+  )
+}
+
+export default function ValidacionPCOCPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      </div>
+    }>
+      <ValidacionPCOCContent />
+    </Suspense>
   )
 }
