@@ -179,6 +179,88 @@ All tables have Row Level Security enabled:
 - Policies enforce `auth.uid() = user_id` check
 - Folders cascade delete to folder_items
 
+## Consola del Revisor (Fase 1)
+
+The reviewer console is the municipal side of the counter: a permit reviewer
+opens a case, uploads the PDFs of a Permiso Unico package, and sees each one
+classified. It lives alongside the applicant product and shares nothing with it
+except the Next.js app shell and the FastAPI process.
+
+### Setup
+
+1. **Run the migrations, in order, in the Supabase SQL Editor:**
+   - `migrations/004_documents_bucket_policies.sql` — storage policies for the
+     now-private `documents` bucket. **Required for the existing applicant
+     document upload to work.**
+   - `migrations/005_reviewer_core.sql` — reviewer tables, RLS policies, the
+     private `expedientes` bucket, and a seeded San Juan organization.
+
+2. **Set the new backend environment variables** (Railway):
+   ```
+   SUPABASE_ANON_KEY=...      # required: RLS enforcement for reviewer routes
+   ANTHROPIC_API_KEY=...      # required: document classification
+   ```
+
+3. **Grant a reviewer access.** They must have signed up first, then:
+   ```sql
+   SELECT public.reviewer_grant('persona@sanjuan.pr.gov', 'San Juan', 'reviewer');
+   ```
+   Roles: `intake`, `reviewer`, `supervisor`, `auditor`. An `auditor` can read
+   everything and change nothing.
+
+The console link appears in the sidebar only for users with a membership.
+Everyone else gets a 403 from the API regardless of what they navigate to.
+
+### How isolation works here
+
+Applicant routes reach Postgres through SQLAlchemy as the `postgres` role, which
+**bypasses Row Level Security** — isolation there is the `.filter(user_id == ...)`
+in each handler.
+
+Reviewer routes do not. They reach Postgres through PostgREST carrying the
+caller's own JWT, so the `org_id` policies in migration 005 are what actually
+prevents a reviewer in one municipality from reading another's case. A handler
+that forgets to filter by org gets nothing back anyway.
+
+### Rules that are enforced, not just documented
+
+- **No finding without evidence.** `extracted_facts` has a CHECK constraint: a
+  fact claiming `status = 'extraido'` must name a document and a page.
+- **The audit trail is append-only.** Trigger plus `REVOKE UPDATE, DELETE`. There
+  is no update function in `app/reviewer/audit.py` to call.
+- **Cases are bound to a ruleset version.** `cases.ruleset_version_id` is frozen
+  by trigger, so changing the rules never rewrites history.
+- **No confidence percentages.** Bands are `alta` / `media` / `baja`, computed
+  from signals we check ourselves (did two independent views agree? did the PDF
+  carry text?) — never asked of the model.
+- **Anthropic only on the reviewer path.** The applicant flow keeps its OpenAI
+  calls; a test fails the build if the two ever mix.
+- **Nothing is sent to an applicant.** There is no send path in this MVP.
+
+Each of these has a test in `api/tests/test_guardrails.py`.
+
+### Decision states
+
+| Identificador | Texto en pantalla |
+| --- | --- |
+| `sin_hallazgos` | Sin hallazgos en las verificaciones cubiertas |
+| `hallazgo_identificado` | Hallazgo identificado — ver evidencia |
+| `requiere_criterio` | Requiere criterio del revisor |
+
+These strings are fixed. Do not paraphrase them, and never render "COMPLIANT" or
+"NON-COMPLIANT" anywhere in this product.
+
+### Running the tests
+
+```bash
+cd api
+pip install -r requirements.txt pytest
+pytest
+```
+
+The suite covers the reviewer path and includes regression tests asserting that
+every applicant route still exists and still requires authentication.
+
 ## Roadmap
 
 - [x] Phase 1: Tomo 6 validation (Web App)
@@ -186,6 +268,9 @@ All tables have Row Level Security enabled:
 - [ ] Phase 3: Environmental compliance
 - [ ] Phase 4: SBP integration
 - [ ] Phase 5: Municipal expansion
+- [x] Reviewer console Phase 1: case model + intake + document classification
+- [ ] Reviewer console Phase 2: rules extracted to versioned tables, fact extraction, deterministic checks
+- [ ] Reviewer console Phase 3: draft requerimiento de subsanacion
 
 ## License
 

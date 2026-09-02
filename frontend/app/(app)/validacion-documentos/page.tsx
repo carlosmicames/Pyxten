@@ -9,7 +9,7 @@ import {
   DocumentValidationResult,
   PCOCValidation,
 } from '@/lib/api'
-import { uploadDocument, deleteDocument } from '@/lib/storage'
+import { uploadDocument, deleteDocument, getDocumentUrl } from '@/lib/storage'
 
 type ValidationTypeOption = 'select' | 'pcoc' | 'permiso_unico'
 
@@ -149,7 +149,7 @@ export default function ValidacionDocumentosPage() {
       // Update the document status in the backend
       const result = await documentsApi.updateDocumentStatus(selectedValidation.id, docCode, {
         uploaded: true,
-        file_url: uploadResult.url,
+        file_url: uploadResult.path,
         file_name: uploadResult.fileName,
       })
 
@@ -163,6 +163,18 @@ export default function ValidacionDocumentosPage() {
     } finally {
       setUploadingDoc(null)
     }
+  }
+
+  // The documents bucket is private, so there is no lasting URL. Mint one at
+  // click time and open it; if signing fails the file is gone or not ours.
+  const handleOpenDocument = async (stored: string) => {
+    setError(null)
+    const url = await getDocumentUrl(stored)
+    if (!url) {
+      setError('No se pudo abrir el documento. Intente subirlo nuevamente.')
+      return
+    }
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   const handleRemoveDocument = async (docCode: string) => {
@@ -656,14 +668,14 @@ export default function ValidacionDocumentosPage() {
                                 <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
-                                <a
-                                  href={docStatus.file_url!}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:underline truncate max-w-[200px]"
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenDocument(docStatus.file_url!)}
+                                  className="text-blue-600 hover:underline truncate max-w-[200px] text-left"
+                                  title="Abrir documento"
                                 >
                                   {docStatus.file_name}
-                                </a>
+                                </button>
                                 <button
                                   onClick={() => handleRemoveDocument(req.code)}
                                   className="text-red-500 hover:text-red-700"

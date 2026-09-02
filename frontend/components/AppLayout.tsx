@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
+import { reviewerApi } from '@/lib/reviewerApi'
 
 const SIDEBAR_COLLAPSED_KEY = 'pyxten_sidebar_collapsed'
 
@@ -17,6 +18,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [loading, setLoading] = useState(true)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  // Null until we know. Only members of a permit office ever see the reviewer console.
+  const [reviewerOrg, setReviewerOrg] = useState<string | null>(null)
 
   useEffect(() => {
     // Load sidebar state from localStorage
@@ -38,6 +41,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       setUserEmail(session.user.email || null)
       setLoading(false)
+
+      // Non-blocking: the console link appears once we know they are a member.
+      const identity = await reviewerApi.me()
+      if (identity) setReviewerOrg(identity.municipality || identity.org_name)
     }
 
     checkAuth()
@@ -71,6 +78,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
     { href: '/proyectos', label: 'Proyectos' },
     { href: '/planes', label: 'Planes' },
     { href: '/asistente-ia', label: 'Asistente IA' },
+    // Reviewer console. Only rendered for permit-office members; applicants
+    // never see it, and the API refuses them regardless of the menu.
+    ...(reviewerOrg
+      ? [{ href: '/revisor/bandeja', label: `Revisor · ${reviewerOrg}` }]
+      : []),
   ]
 
   return (
