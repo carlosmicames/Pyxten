@@ -151,6 +151,25 @@ export interface ExtractedFactRow {
   extracted_at: string
 }
 
+/** One recorded external lookup, and how trustworthy the result is. */
+export type QualityFlag =
+  | 'ok'
+  | 'sin_resultado'
+  | 'ambiguo'
+  | 'fuera_de_servicio'
+  | 'esquema_inesperado'
+
+export interface GisOutcome {
+  resultado: string
+  consultas: {
+    source: string
+    quality_flag: QualityFlag
+    matched: boolean | null
+    nota: string | null
+    valor: string | null
+  }[]
+}
+
 export interface ExtractionOutcome {
   procesados: {
     document_id: string
@@ -286,6 +305,9 @@ export const reviewerApi = {
   extract: (caseId: string) =>
     request<ExtractionOutcome>(`/reviewer/cases/${caseId}/extract`, { method: 'POST' }),
 
+  gis: (caseId: string) =>
+    request<GisOutcome>(`/reviewer/cases/${caseId}/gis`, { method: 'POST' }),
+
   evaluate: (caseId: string) =>
     request<{ resumen: CheckSummary; ruleset_id: string }>(
       `/reviewer/cases/${caseId}/evaluate`,
@@ -375,6 +397,23 @@ export const REASON_LABELS: Record<string, string> = {
   regla_sin_fundamento_legal: 'La regla no tiene fundamento legal registrado',
   banda_baja: 'La lectura de la evidencia es poco confiable',
   error_de_evaluacion: 'La regla no se pudo evaluar',
+}
+
+/**
+ * What a lookup's quality flag means for the reviewer. Anything but `ok` makes
+ * the rules that depend on it escalate rather than conclude.
+ */
+export const QUALITY_LABELS: Record<QualityFlag, string> = {
+  ok: 'Consulta completada',
+  sin_resultado: 'El servicio no devolvio un resultado',
+  ambiguo: 'Resultado ambiguo — confirme manualmente',
+  fuera_de_servicio: 'El servicio no estuvo disponible',
+  esquema_inesperado: 'El servicio respondio en un formato inesperado',
+}
+
+export const GIS_SOURCE_LABELS: Record<string, string> = {
+  zonificacion: 'Calificacion del predio (MIPR)',
+  crim_parcelas: 'Parcela (CRIM)',
 }
 
 export const FACT_STATUS_LABELS: Record<string, string> = {

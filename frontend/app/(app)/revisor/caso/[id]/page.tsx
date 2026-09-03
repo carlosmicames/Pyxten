@@ -13,6 +13,9 @@ import {
   ComplianceCheck,
   DocumentType,
   ExtractionOutcome,
+  GIS_SOURCE_LABELS,
+  GisOutcome,
+  QUALITY_LABELS,
   ReviewerIdentity,
   formatDate,
   reviewerApi,
@@ -32,6 +35,7 @@ const EVENT_LABELS: Record<string, string> = {
   document_type_overridden: 'Tipo corregido por el revisor',
   document_viewed: 'Documento consultado',
   extraction_run: 'Lectura de documentos ejecutada',
+  gis_lookup_run: 'Consulta de calificacion ejecutada',
   evaluation_run: 'Reglas evaluadas',
 }
 
@@ -51,8 +55,9 @@ export default function CasoPage() {
 
   const [tab, setTab] = useState<Tab>('verificaciones')
   const [loading, setLoading] = useState(true)
-  const [running, setRunning] = useState<null | 'extract' | 'evaluate'>(null)
+  const [running, setRunning] = useState<null | 'extract' | 'gis' | 'evaluate'>(null)
   const [extraction, setExtraction] = useState<ExtractionOutcome | null>(null)
+  const [gisOutcome, setGisOutcome] = useState<GisOutcome | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const loadChecks = useCallback(async (id: string) => {
@@ -88,20 +93,31 @@ export default function CasoPage() {
   }, [caseId, loadChecks])
 
   /**
-   * Read the documents, then run the rules against what was read.
+   * Read the documents, look up the parcel, then run the rules.
    *
-   * Deliberately one button: facts with no evaluation tell a reviewer nothing,
-   * and evaluating without re-reading after new documents arrived would report
-   * a stale answer.
+   * Order matters: the zoning lookup needs the activity declared on the
+   * applicant's own patente, which extraction produces. One button, because
+   * facts with no evaluation tell a reviewer nothing and evaluating without
+   * re-reading would report a stale answer.
    */
   const handleAnalyze = async () => {
     if (!caseId) return
     setError(null)
     setExtraction(null)
+    setGisOutcome(null)
 
     try {
       setRunning('extract')
       setExtraction(await reviewerApi.extract(caseId))
+
+      // A GIS failure is a recorded escalation, not a reason to abandon the
+      // run - the other thirty-two rules still have something to say.
+      setRunning('gis')
+      try {
+        setGisOutcome(await reviewerApi.gis(caseId))
+      } catch (gisError) {
+        console.error('GIS lookup failed', gisError)
+      }
 
       setRunning('evaluate')
       await reviewerApi.evaluate(caseId)
@@ -191,9 +207,11 @@ export default function CasoPage() {
             >
               {running === 'extract'
                 ? 'Leyendo documentos...'
-                : running === 'evaluate'
-                  ? 'Evaluando reglas...'
-                  : 'Analizar expediente'}
+                : running === 'gis'
+                  ? 'Consultando calificacion...'
+                  : running === 'evaluate'
+                    ? 'Evaluando reglas...'
+                    : 'Analizar expediente'}
             </button>
           )}
         </div>
@@ -221,6 +239,35 @@ export default function CasoPage() {
           {extraction.omitidos.length > 0 && (
             <> {extraction.omitidos.length} documento(s) omitidos por falta de tipo.</>
           )}
+        </div>
+      )}
+
+      {gisOutcome && gisOutcome.consultas.length > 0 && (
+        <div className="border border-gray-200 rounded-md px-4 py-3 mb-6 bg-white">
+          <p className="text-sm font-medium text-gray-900 mb-2">Consultas externas</p>
+          <ul className="space-y-1.5">
+            {gisOutcome.consultas.map((consulta, index) => (
+              <li key={`${consulta.source}-${index}`} className="text-sm">
+                <span className="text-gray-700">
+                  {GIS_SOURCE_LABELS[consulta.source] || consulta.source}
+                </span>
+                {': '}
+                <span
+                  className={
+                    consulta.quality_flag === 'ok' ? 'text-gray-600' : 'text-amber-800'
+                  }
+                >
+                  {QUALITY_LABELS[consulta.quality_flag] || consulta.quality_flag}
+                </span>
+                {consulta.valor && (
+                  <span className="font-mono text-xs text-gray-500"> · {consulta.valor}</span>
+                )}
+                {consulta.nota && (
+                  <p className="text-xs text-amber-800 mt-0.5">{consulta.nota}</p>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

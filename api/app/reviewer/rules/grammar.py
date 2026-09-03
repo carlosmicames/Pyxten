@@ -9,7 +9,7 @@ to fit on one page. So this is a CLOSED grammar:
   combinators   all · any · not
   predicates    doc_present · profile_is · field_present · field_equals
                 field_matches · field_contains · date_on_or_after · issued_by
-                external_agrees
+                external_agrees · external_matched
   normalizers   catastro · address · entity_name · person_name
                 municipality · exact
 
@@ -375,7 +375,48 @@ def _p_external_agrees(args: Dict, ctx: Context) -> Tri:
     return outcome
 
 
+def _p_external_matched(args: Dict, ctx: Context) -> Tri:
+    """
+    Did a recorded external determination come out affirmative?
+
+    Used where the external check is a computation rather than a string
+    comparison - zoning compatibility, for instance, which is a lookup, a POT
+    mapping and a table check, not two values being equal. The wrapper that
+    performs it records `matched`; this predicate reads it.
+
+    An absent, stale-quality or ambiguous lookup is UNKNOWN, so the rule
+    escalates rather than concluding. That is the whole reason a GIS outage
+    cannot read as a clean parcel here.
+    """
+    source = args.get("source", "")
+    result = ctx.externals.get(source)
+
+    if result is None:
+        ctx.notes.append(f"consulta_externa_ausente:{source}")
+        return Tri.UNKNOWN
+    if not result.usable:
+        ctx.notes.append(f"consulta_externa_{result.quality_flag}:{source}")
+        return Tri.UNKNOWN
+
+    ctx.citations.append(
+        {
+            "field_key": f"consulta.{source}",
+            "document_id": None,
+            "page": None,
+            "value": result.value,
+            # A recorded lookup is evidence of what the service said, exactly.
+            "band": "alta",
+        }
+    )
+
+    if not result.matched:
+        ctx.notes.append(f"determinacion_externa_negativa:{source}:{result.value}")
+
+    return Tri.of(bool(result.matched))
+
+
 PREDICATES: Dict[str, Callable[[Dict, Context], Tri]] = {
+    "external_matched": _p_external_matched,
     "doc_present": _p_doc_present,
     "profile_is": _p_profile_is,
     "field_present": _p_field_present,

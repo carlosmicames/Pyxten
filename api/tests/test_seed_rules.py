@@ -23,7 +23,9 @@ from app.reviewer.rules import (
     validate_condition,
 )
 
-MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "007_seed_rules.sql"
+MIGRATIONS = Path(__file__).resolve().parents[2] / "migrations"
+MIGRATION = MIGRATIONS / "007_seed_rules.sql"
+ZONING_MIGRATION = MIGRATIONS / "009_zoning_rule.sql"
 
 # Rows look like: ('CODE', 'Title', 'family', 'authority', citation, applies, req,
 #                  pass, fail, review, 'severity', TRUE)
@@ -73,7 +75,34 @@ def load_seed_rules():
     return rules
 
 
-SEED_RULES = load_seed_rules()
+# Migration 009 rewrites A-01 and turns it on. Apply it here so the tests
+# exercise the ruleset that actually runs, not 007's superseded version.
+_A01_OVERRIDE = re.compile(
+    r"SET pass_condition\s*=\s*'(?P<pass_condition>.*?)'::jsonb,"
+    r"\s*fail_condition\s*=\s*'(?P<fail_condition>.*?)'::jsonb,"
+    r"\s*review_condition\s*=\s*(?P<review_condition>NULL|'.*?'),"
+    r"\s*enabled\s*=\s*(?P<enabled>TRUE|FALSE)",
+    re.DOTALL,
+)
+
+
+def apply_zoning_migration(rules):
+    text = ZONING_MIGRATION.read_text(encoding="utf-8")
+    match = _A01_OVERRIDE.search(text)
+    assert match, "migration 009 no longer contains a recognisable A-01 update"
+
+    for rule in rules:
+        if rule["code"] != "A-01":
+            continue
+        rule["enabled"] = match.group("enabled") == "TRUE"
+        for key in ("pass_condition", "fail_condition", "review_condition"):
+            raw = _unquote(match.group(key))
+            rule[key] = json.loads(raw) if raw else None
+
+    return rules
+
+
+SEED_RULES = apply_zoning_migration(load_seed_rules())
 
 
 # =============================================================================
@@ -299,11 +328,60 @@ def test_unclassified_documents_escalate_and_never_accuse():
     assert by_code["P-11"].status == REQUIERE_CRITERIO
 
 
-def test_zoning_rule_stays_off_until_the_gis_wrapper_lands():
+def test_zoning_rule_is_enabled_and_reads_a_recorded_determination():
     """
-    A rule that escalates on every case teaches reviewers to ignore escalations.
-    A-01 ships disabled and is enabled with one UPDATE when it can be answered.
+    A-01 shipped disabled in 007 because it had nothing to answer it. Migration
+    009 rewrites it to read the wrapper's recorded determination and turns it on.
     """
     zoning = next(r for r in SEED_RULES if r["code"] == "A-01")
-    assert zoning["enabled"] is False
-    assert "A-01" not in {r.rule_code for r in evaluate_case(SEED_RULES, complete_case_context())}
+
+    assert zoning["enabled"] is True
+    assert zoning["pass_condition"] == {"external_matched": {"source": "zonificacion"}}
+    # Compatibility is a lookup plus a table check, not two strings being equal.
+    assert "external_agrees" not in json.dumps(zoning["pass_condition"])
+
+
+def test_zoning_escalates_when_no_lookup_was_recorded():
+    """
+    The failure that matters: a GIS outage must never read as a clean parcel.
+    With nothing recorded, both conditions come out unknown and A-01 escalates.
+    """
+    by_code = {r.rule_code: r for r in evaluate_case(SEED_RULES, complete_case_context())}
+
+    assert by_code["A-01"].status == REQUIERE_CRITERIO
+    assert by_code["A-01"].reason_code == "condiciones_no_concluyentes"
+
+
+def test_zoning_passes_and_fails_on_a_recorded_determination():
+    from app.reviewer.rules import ExternalResult
+
+    compatible = complete_case_context()
+    compatible.externals["zonificacion"] = ExternalResult(
+        "zonificacion", value="C-L", matched=True
+    )
+    by_code = {r.rule_code: r for r in evaluate_case(SEED_RULES, compatible)}
+    assert by_code["A-01"].status == SIN_HALLAZGOS
+
+    incompatible = complete_case_context()
+    incompatible.externals["zonificacion"] = ExternalResult(
+        "zonificacion", value="R-B", matched=False
+    )
+    by_code = {r.rule_code: r for r in evaluate_case(SEED_RULES, incompatible)}
+    assert by_code["A-01"].status == HALLAZGO_IDENTIFICADO
+
+
+@pytest.mark.parametrize("flag", ["ambiguo", "fuera_de_servicio", "esquema_inesperado"])
+def test_zoning_escalates_on_any_unusable_lookup(flag):
+    """
+    An ambiguous parcel, an unreachable service and an unexpected response shape
+    all reach a reviewer. None of them can produce a compatible determination.
+    """
+    from app.reviewer.rules import ExternalResult
+
+    ctx = complete_case_context()
+    ctx.externals["zonificacion"] = ExternalResult(
+        "zonificacion", value="C-L", matched=True, quality_flag=flag
+    )
+
+    by_code = {r.rule_code: r for r in evaluate_case(SEED_RULES, ctx)}
+    assert by_code["A-01"].status == REQUIERE_CRITERIO

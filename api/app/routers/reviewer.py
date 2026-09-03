@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
 
-from app.reviewer import audit, evaluation, intake, taxonomy
+from app.reviewer import audit, evaluation, gis, intake, taxonomy
 from app.reviewer.context import ReviewerContext, get_reviewer_context
 
 logger = logging.getLogger(__name__)
@@ -450,6 +450,25 @@ def extract_case_facts(
     ctx.require_write()
     _get_case_or_404(ctx, case_id)
     return evaluation.run_extraction(ctx, case_id)
+
+
+@router.post("/cases/{case_id}/gis")
+def run_gis_lookups(
+    case_id: str,
+    ctx: ReviewerContext = Depends(get_reviewer_context),
+):
+    """
+    Geocode the property, read the parcel and the calificacion, and record a
+    zoning-compatibility determination.
+
+    Runs after extraction, because the proposed use is read off the applicant's
+    own patente rather than inferred. Every outcome is recorded with its raw
+    response; an outage, an ambiguous parcel or an unmapped activity all become
+    a quality flag that makes the zoning rule escalate.
+    """
+    ctx.require_write()
+    case = _get_case_or_404(ctx, case_id)
+    return gis.run_lookups(ctx, case_id, case)
 
 
 @router.post("/cases/{case_id}/evaluate")
