@@ -486,11 +486,13 @@ def case_checks(
     """
     _get_case_or_404(ctx, case_id)
 
+    # Embed the rule so the screen can name the check instead of showing a uuid.
+    # rule_id is a foreign key, so PostgREST resolves `rules(...)` for us.
     rows = ctx.db.select(
         "compliance_checks",
         columns=(
             "id,rule_id,family,status,band,evidence_ids,citations,explanation,"
-            "reason_code,evaluated_at"
+            "reason_code,evaluated_at,rules(code,title,severity,citation,authority)"
         ),
         filters={"case_id": f"eq.{case_id}"},
         order="evaluated_at.desc",
@@ -500,7 +502,24 @@ def case_checks(
     for row in rows:
         latest.setdefault(row["rule_id"], row)
 
-    checks = list(latest.values())
+    checks = []
+    for row in latest.values():
+        rule = row.pop("rules", None) or {}
+        checks.append(
+            {
+                **row,
+                "rule_code": rule.get("code"),
+                "rule_title": rule.get("title"),
+                "severity": rule.get("severity"),
+                "rule_citation": rule.get("citation"),
+                "authority": rule.get("authority"),
+            }
+        )
+
+    # Findings first, then what needs a person, then what passed. A reviewer
+    # opens this screen to see what is wrong, not to read a list of successes.
+    order = {"hallazgo_identificado": 0, "requiere_criterio": 1, "sin_hallazgos": 2}
+    checks.sort(key=lambda c: (order.get(c["status"], 3), c.get("rule_code") or ""))
     counts = {
         "sin_hallazgos": sum(1 for c in checks if c["status"] == "sin_hallazgos"),
         "hallazgo_identificado": sum(1 for c in checks if c["status"] == "hallazgo_identificado"),

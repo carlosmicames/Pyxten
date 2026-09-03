@@ -48,6 +48,8 @@ export interface CaseRecord {
   status: string
   assigned_reviewer_id: string | null
   ruleset_version_id: string
+  profile: CaseProfile
+  filing_date: string | null
   created_at: string
   updated_at: string
 }
@@ -89,6 +91,94 @@ export interface AuditEvent {
 export interface UploadOutcome {
   documents: CaseDocument[]
   rejected: { filename: string; reason: string }[]
+}
+
+
+// =============================================================================
+// Checks, facts, profile
+// =============================================================================
+
+/** The three decision states. Identifiers are fixed; never invent a fourth. */
+export type CheckStatus =
+  | 'sin_hallazgos'
+  | 'hallazgo_identificado'
+  | 'requiere_criterio'
+
+export type RuleFamily = 'presencia' | 'vigencia' | 'consistencia' | 'aplicabilidad'
+
+export interface Citation {
+  field_key: string
+  document_id: string | null
+  page: number | null
+  value: string | null
+  band: Band
+}
+
+export interface ComplianceCheck {
+  id: string
+  rule_id: string
+  rule_code: string | null
+  rule_title: string | null
+  rule_citation: string | null
+  authority: string | null
+  severity: 'leve' | 'moderada' | 'grave' | null
+  family: RuleFamily
+  status: CheckStatus
+  band: Band
+  reason_code: string | null
+  explanation: string
+  evidence_ids: string[]
+  citations: Citation[]
+  evaluated_at: string
+}
+
+export interface CheckSummary {
+  sin_hallazgos: number
+  hallazgo_identificado: number
+  requiere_criterio: number
+  total_evaluadas: number
+}
+
+export interface ExtractedFactRow {
+  id: string
+  document_id: string | null
+  field_key: string
+  value_text: string | null
+  value_date: string | null
+  source_page: number | null
+  band: Band
+  status: 'extraido' | 'evidencia_no_disponible' | 'contradictorio'
+  extracted_at: string
+}
+
+export interface ExtractionOutcome {
+  procesados: {
+    document_id: string
+    doc_type: string
+    campos: number
+    localizados: number
+    error: string | null
+  }[]
+  omitidos: { document_id: string; reason: string }[]
+  campos_totales: number
+}
+
+/**
+ * The answers that decide which rules apply.
+ * An unanswered key is never read as "no": the rule escalates instead.
+ */
+export interface CaseProfile {
+  forma_juridica?: 'persona_natural' | 'entidad_juridica'
+  tenencia?: 'dueno' | 'arrendatario'
+  tipo_tramite?: 'nueva' | 'renovacion'
+  categoria_uso?:
+    | 'alimentos'
+    | 'salud'
+    | 'comercio_general'
+    | 'entretenimiento'
+    | 'industrial'
+  acceso_publico?: boolean
+  radica_representante?: boolean
 }
 
 // =============================================================================
@@ -193,6 +283,23 @@ export const reviewerApi = {
     return response.json()
   },
 
+  extract: (caseId: string) =>
+    request<ExtractionOutcome>(`/reviewer/cases/${caseId}/extract`, { method: 'POST' }),
+
+  evaluate: (caseId: string) =>
+    request<{ resumen: CheckSummary; ruleset_id: string }>(
+      `/reviewer/cases/${caseId}/evaluate`,
+      { method: 'POST' }
+    ),
+
+  checks: (caseId: string) =>
+    request<{ resumen: CheckSummary; verificaciones: ComplianceCheck[] }>(
+      `/reviewer/cases/${caseId}/checks`
+    ),
+
+  facts: (caseId: string) =>
+    request<{ campos: ExtractedFactRow[] }>(`/reviewer/cases/${caseId}/facts`),
+
   documentUrl: (documentId: string) =>
     request<{ url: string; expires_in: number }>(`/reviewer/documents/${documentId}/url`),
 
@@ -246,6 +353,34 @@ export const CASE_STATUS_LABELS: Record<string, string> = {
   en_revision: 'En revision',
   borrador_requerimiento: 'Borrador de requerimiento',
   cerrado: 'Cerrado',
+}
+
+export const FAMILY_LABELS: Record<RuleFamily, string> = {
+  presencia: 'Presencia',
+  vigencia: 'Vigencia',
+  consistencia: 'Consistencia',
+  aplicabilidad: 'Aplicabilidad',
+}
+
+/**
+ * Why a check escalated. These come from the engine, not from a model, and each
+ * one names a specific trigger.
+ */
+export const REASON_LABELS: Record<string, string> = {
+  aplicabilidad_indeterminada: 'No se pudo determinar si la regla aplica',
+  condicion_de_revision: 'La regla exige revision manual',
+  condiciones_no_concluyentes: 'La evidencia no permite concluir',
+  hallazgo_sin_evidencia: 'No hay evidencia que sustente un hallazgo',
+  inconsistencia_sin_ambos_documentos: 'Falta uno de los dos documentos a comparar',
+  regla_sin_fundamento_legal: 'La regla no tiene fundamento legal registrado',
+  banda_baja: 'La lectura de la evidencia es poco confiable',
+  error_de_evaluacion: 'La regla no se pudo evaluar',
+}
+
+export const FACT_STATUS_LABELS: Record<string, string> = {
+  extraido: 'Leido',
+  evidencia_no_disponible: 'No localizado',
+  contradictorio: 'Lecturas contradictorias',
 }
 
 export function formatDate(value: string): string {

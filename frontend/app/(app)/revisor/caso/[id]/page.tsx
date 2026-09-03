@@ -1,22 +1,27 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import {
   AuditEvent,
   CASE_STATUS_LABELS,
   CaseDocument,
+  CaseProfile,
   CaseRecord,
+  CheckSummary,
+  ComplianceCheck,
   DocumentType,
+  ExtractionOutcome,
   ReviewerIdentity,
   formatDate,
   reviewerApi,
 } from '@/lib/reviewerApi'
+import ChecksPanel from '@/components/reviewer/ChecksPanel'
 import DocumentUploader from '@/components/reviewer/DocumentUploader'
+import PerfilCaso from '@/components/reviewer/PerfilCaso'
 import SinAcceso from '@/components/reviewer/SinAcceso'
 
-/** Human-readable names for what the audit trail records. */
 const EVENT_LABELS: Record<string, string> = {
   case_created: 'Expediente abierto',
   case_updated: 'Expediente actualizado',
@@ -26,7 +31,11 @@ const EVENT_LABELS: Record<string, string> = {
   document_classification_failed: 'Clasificacion no completada',
   document_type_overridden: 'Tipo corregido por el revisor',
   document_viewed: 'Documento consultado',
+  extraction_run: 'Lectura de documentos ejecutada',
+  evaluation_run: 'Reglas evaluadas',
 }
+
+type Tab = 'verificaciones' | 'documentos' | 'perfil' | 'bitacora'
 
 export default function CasoPage() {
   const params = useParams<{ id: string }>()
@@ -36,10 +45,21 @@ export default function CasoPage() {
   const [caseRecord, setCaseRecord] = useState<CaseRecord | null>(null)
   const [documents, setDocuments] = useState<CaseDocument[]>([])
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([])
+  const [checks, setChecks] = useState<ComplianceCheck[]>([])
+  const [summary, setSummary] = useState<CheckSummary | null>(null)
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([])
-  const [showAudit, setShowAudit] = useState(false)
+
+  const [tab, setTab] = useState<Tab>('verificaciones')
   const [loading, setLoading] = useState(true)
+  const [running, setRunning] = useState<null | 'extract' | 'evaluate'>(null)
+  const [extraction, setExtraction] = useState<ExtractionOutcome | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const loadChecks = useCallback(async (id: string) => {
+    const result = await reviewerApi.checks(id)
+    setChecks(result.verificaciones)
+    setSummary(result.resumen.total_evaluadas > 0 ? result.resumen : null)
+  }, [])
 
   useEffect(() => {
     if (!caseId) return
@@ -57,6 +77,7 @@ export default function CasoPage() {
           setCaseRecord(detail.case)
           setDocuments(detail.documents)
           setDocumentTypes(types)
+          await loadChecks(caseId)
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Error cargando el expediente')
         }
@@ -64,11 +85,37 @@ export default function CasoPage() {
       setLoading(false)
     }
     load()
-  }, [caseId])
+  }, [caseId, loadChecks])
+
+  /**
+   * Read the documents, then run the rules against what was read.
+   *
+   * Deliberately one button: facts with no evaluation tell a reviewer nothing,
+   * and evaluating without re-reading after new documents arrived would report
+   * a stale answer.
+   */
+  const handleAnalyze = async () => {
+    if (!caseId) return
+    setError(null)
+    setExtraction(null)
+
+    try {
+      setRunning('extract')
+      setExtraction(await reviewerApi.extract(caseId))
+
+      setRunning('evaluate')
+      await reviewerApi.evaluate(caseId)
+      await loadChecks(caseId)
+      setTab('verificaciones')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo analizar el expediente')
+    } finally {
+      setRunning(null)
+    }
+  }
 
   const loadAudit = async () => {
     if (!caseId) return
-    setShowAudit(true)
     try {
       setAuditEvents(await reviewerApi.auditTrail(caseId))
     } catch (err) {
@@ -93,22 +140,62 @@ export default function CasoPage() {
     )
   }
 
-  const sinClasificar = documents.filter((d) => d.doc_type === 'desconocido').length
-  const bajaConfianza = documents.filter((d) => d.classification_band === 'baja').length
+  const unclassified = documents.filter((d) => d.doc_type === 'desconocido').length
+  const lastEvaluated = checks.length ? checks[0].evaluated_at : null
+
+  const tabs: { id: Tab; label: string; badge?: number }[] = [
+    {
+      id: 'verificaciones',
+      label: 'Verificaciones',
+      badge: summary?.hallazgo_identificado || undefined,
+    },
+    { id: 'documentos', label: 'Documentos', badge: documents.length || undefined },
+    { id: 'perfil', label: 'Perfil' },
+    { id: 'bitacora', label: 'Bitacora' },
+  ]
 
   return (
     <div className="p-8 max-w-5xl">
+      {/* ---------- Header ---------- */}
       <div className="mb-6">
         <Link href="/revisor/bandeja" className="text-sm text-primary-700 hover:underline">
           ← Bandeja de expedientes
         </Link>
-        <div className="flex items-baseline gap-3 mt-2 flex-wrap">
-          <h1 className="text-2xl font-bold text-gray-900 font-mono">
-            {caseRecord.case_number}
-          </h1>
-          <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
-            {CASE_STATUS_LABELS[caseRecord.status] || caseRecord.status}
-          </span>
+        <div className="flex items-start justify-between gap-4 flex-wrap mt-2">
+          <div>
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <h1 className="text-2xl font-bold text-gray-900 font-mono">
+                {caseRecord.case_number}
+              </h1>
+              <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                {CASE_STATUS_LABELS[caseRecord.status] || caseRecord.status}
+              </span>
+            </div>
+            <p className="text-gray-600 mt-1 text-sm">
+              {caseRecord.applicant_name || 'Solicitante no indicado'}
+              {caseRecord.property_address ? ` · ${caseRecord.property_address}` : ''}
+            </p>
+          </div>
+
+          {identity.can_write && (
+            <button
+              type="button"
+              className="btn-primary whitespace-nowrap"
+              onClick={handleAnalyze}
+              disabled={running !== null || documents.length === 0}
+              title={
+                documents.length === 0
+                  ? 'Suba documentos antes de analizar'
+                  : 'Lee los documentos y evalua las reglas'
+              }
+            >
+              {running === 'extract'
+                ? 'Leyendo documentos...'
+                : running === 'evaluate'
+                  ? 'Evaluando reglas...'
+                  : 'Analizar expediente'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -118,59 +205,64 @@ export default function CasoPage() {
         </div>
       )}
 
-      {/* ---------- Case facts ---------- */}
-      <section className="card mb-6">
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-          <Campo label="Solicitante" value={caseRecord.applicant_name} />
-          <Campo label="Catastro" value={caseRecord.catastro} mono />
-          <Campo label="Direccion" value={caseRecord.property_address} />
-          <Campo label="Tipo de permiso" value={caseRecord.permit_type} />
-          <div className="sm:col-span-2 pt-2 border-t border-gray-100">
-            <dt className="text-gray-500 text-xs uppercase tracking-wide">
-              Version de reglamento aplicada
-            </dt>
-            <dd className="font-mono text-xs text-gray-700 mt-0.5">
-              {caseRecord.ruleset_version_id}
-            </dd>
-          </div>
-        </dl>
-      </section>
-
-      {/* ---------- What needs a person ---------- */}
-      {documents.length > 0 && (sinClasificar > 0 || bajaConfianza > 0) && (
+      {unclassified > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-md px-4 py-3 mb-6 text-sm text-amber-900">
-          <p className="font-medium">Requiere criterio del revisor</p>
-          <ul className="list-disc list-inside mt-1 space-y-0.5">
-            {sinClasificar > 0 && (
-              <li>
-                {sinClasificar}{' '}
-                {sinClasificar === 1
-                  ? 'documento quedo sin clasificar'
-                  : 'documentos quedaron sin clasificar'}
-                .
-              </li>
-            )}
-            {bajaConfianza > 0 && (
-              <li>
-                {bajaConfianza}{' '}
-                {bajaConfianza === 1
-                  ? 'documento tiene confianza baja'
-                  : 'documentos tienen confianza baja'}{' '}
-                y debe confirmarse manualmente.
-              </li>
-            )}
-          </ul>
+          {unclassified === 1
+            ? '1 documento quedo sin clasificar. No se leeran sus datos hasta que se le asigne un tipo.'
+            : `${unclassified} documentos quedaron sin clasificar. No se leeran sus datos hasta que se les asigne un tipo.`}
         </div>
       )}
 
-      {/* ---------- Documents ---------- */}
-      <section className="card mb-6">
-        <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Documentos ({documents.length})
-          </h2>
+      {extraction && (
+        <div className="bg-gray-50 border border-gray-200 rounded-md px-4 py-3 mb-6 text-sm text-gray-700">
+          Se leyeron {extraction.campos_totales} campos en{' '}
+          {extraction.procesados.length}{' '}
+          {extraction.procesados.length === 1 ? 'documento' : 'documentos'}.
+          {extraction.omitidos.length > 0 && (
+            <> {extraction.omitidos.length} documento(s) omitidos por falta de tipo.</>
+          )}
         </div>
+      )}
 
+      {/* ---------- Tabs ---------- */}
+      <div className="border-b border-gray-200 mb-6">
+        <nav className="flex gap-1 -mb-px flex-wrap">
+          {tabs.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => {
+                setTab(item.id)
+                if (item.id === 'bitacora' && auditEvents.length === 0) loadAudit()
+              }}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                tab === item.id
+                  ? 'border-primary-600 text-primary-700'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              {item.label}
+              {item.badge !== undefined && (
+                <span className="ml-1.5 text-xs tabular-nums text-gray-500">
+                  {item.badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* ---------- Panels ---------- */}
+      {tab === 'verificaciones' && (
+        <ChecksPanel
+          checks={checks}
+          summary={summary}
+          documents={documents}
+          evaluatedAt={lastEvaluated}
+        />
+      )}
+
+      {tab === 'documentos' && (
         <DocumentUploader
           caseId={caseRecord.id}
           documents={documents}
@@ -178,55 +270,68 @@ export default function CasoPage() {
           canWrite={identity.can_write}
           onDocumentsChanged={setDocuments}
         />
-      </section>
+      )}
 
-      {/* ---------- Audit trail ---------- */}
-      <section className="card">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Bitacora</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Registro completo e inalterable de lo ocurrido en este expediente.
-            </p>
-          </div>
-          {!showAudit && (
-            <button type="button" onClick={loadAudit} className="btn-secondary">
-              Ver bitacora
-            </button>
+      {tab === 'perfil' && (
+        <div className="card">
+          <PerfilCaso
+            caseId={caseRecord.id}
+            profile={caseRecord.profile || {}}
+            filingDate={caseRecord.filing_date}
+            canWrite={identity.can_write}
+            onSaved={(profile: CaseProfile, filingDate: string | null) =>
+              setCaseRecord({ ...caseRecord, profile, filing_date: filingDate })
+            }
+          />
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm mt-6 pt-6 border-t border-gray-100">
+            <Campo label="Catastro" value={caseRecord.catastro} mono />
+            <Campo label="Tipo de permiso" value={caseRecord.permit_type} />
+            <div className="sm:col-span-2">
+              <dt className="text-gray-500 text-xs uppercase tracking-wide">
+                Version de reglamento aplicada
+              </dt>
+              <dd className="font-mono text-xs text-gray-700 mt-0.5">
+                {caseRecord.ruleset_version_id}
+              </dd>
+              <p className="text-xs text-gray-500 mt-1">
+                Fija para este expediente. Si el reglamento cambia, este caso se
+                sigue evaluando bajo las reglas vigentes al abrirlo.
+              </p>
+            </div>
+          </dl>
+        </div>
+      )}
+
+      {tab === 'bitacora' && (
+        <div className="card">
+          <p className="text-sm text-gray-600 mb-4">
+            Registro completo e inalterable de lo ocurrido en este expediente.
+          </p>
+          {auditEvents.length === 0 ? (
+            <p className="text-sm text-gray-500">Sin eventos registrados.</p>
+          ) : (
+            <ol className="space-y-2">
+              {auditEvents.map((event) => (
+                <li key={event.id} className="text-sm border-l-2 border-gray-200 pl-3 py-1">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="font-medium text-gray-900">
+                      {EVENT_LABELS[event.event_type] || event.event_type}
+                    </span>
+                    <span className="text-xs text-gray-500 font-mono">
+                      {formatDate(event.created_at)}
+                    </span>
+                  </div>
+                  {Object.keys(event.payload || {}).length > 0 && (
+                    <pre className="text-xs text-gray-600 mt-1 whitespace-pre-wrap break-words font-mono">
+                      {JSON.stringify(event.payload, null, 2)}
+                    </pre>
+                  )}
+                </li>
+              ))}
+            </ol>
           )}
         </div>
-
-        {showAudit && (
-          <div className="mt-4">
-            {auditEvents.length === 0 ? (
-              <p className="text-sm text-gray-500">Sin eventos registrados.</p>
-            ) : (
-              <ol className="space-y-2">
-                {auditEvents.map((event) => (
-                  <li
-                    key={event.id}
-                    className="text-sm border-l-2 border-gray-200 pl-3 py-1"
-                  >
-                    <div className="flex items-baseline gap-2 flex-wrap">
-                      <span className="font-medium text-gray-900">
-                        {EVENT_LABELS[event.event_type] || event.event_type}
-                      </span>
-                      <span className="text-xs text-gray-500 font-mono">
-                        {formatDate(event.created_at)}
-                      </span>
-                    </div>
-                    {Object.keys(event.payload || {}).length > 0 && (
-                      <pre className="text-xs text-gray-600 mt-1 whitespace-pre-wrap break-words font-mono">
-                        {JSON.stringify(event.payload, null, 2)}
-                      </pre>
-                    )}
-                  </li>
-                ))}
-              </ol>
-            )}
-          </div>
-        )}
-      </section>
+      )}
     </div>
   )
 }
