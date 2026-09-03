@@ -271,6 +271,15 @@ def _p_field_matches(args: Dict, ctx: Context) -> Tri:
     return Tri.of(checker(str(fact.value)))
 
 
+def _as_date(value) -> Optional[date]:
+    """Accept a date, an ISO string, or anything norm_date can read."""
+    if value is None:
+        return None
+    if isinstance(value, date):
+        return value
+    return norm_date(value)
+
+
 def _p_date_on_or_after(args: Dict, ctx: Context) -> Tri:
     """Validity: is the document's date at or after the reference date?"""
     fact = ctx.resolve(args.get("field", ""))
@@ -282,12 +291,14 @@ def _p_date_on_or_after(args: Dict, ctx: Context) -> Tri:
     if not fact.usable:
         return Tri.UNKNOWN
 
-    subject = fact.value_date or norm_date(fact.value_text)
+    # value_date is a date object in memory but an ISO string when it comes back
+    # from PostgREST, so everything is coerced rather than compared as-is.
+    subject = _as_date(fact.value_date) or norm_date(fact.value_text)
     reference_path = args.get("reference", "case.filing_date")
     reference_fact = ctx.resolve(reference_path)
     reference = None
     if reference_fact is not None:
-        reference = reference_fact.value_date or norm_date(reference_fact.value_text)
+        reference = _as_date(reference_fact.value_date) or norm_date(reference_fact.value_text)
 
     if subject is None or reference is None:
         ctx.notes.append("fecha_ilegible")

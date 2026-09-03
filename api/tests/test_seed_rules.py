@@ -81,7 +81,7 @@ SEED_RULES = load_seed_rules()
 # =============================================================================
 
 def test_all_rules_parsed():
-    assert len(SEED_RULES) == 31, f"parsed {len(SEED_RULES)} rules, expected 31"
+    assert len(SEED_RULES) == 33, f"parsed {len(SEED_RULES)} rules, expected 33"
 
 
 def test_family_counts_match_the_plan():
@@ -91,8 +91,8 @@ def test_family_counts_match_the_plan():
 
     assert counts == {
         "presencia": 11,
-        "vigencia": 11,
-        "consistencia": 8,
+        "vigencia": 12,
+        "consistencia": 9,
         "aplicabilidad": 1,
     }
 

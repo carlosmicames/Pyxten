@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
 
-from app.reviewer import audit, intake, taxonomy
+from app.reviewer import audit, evaluation, intake, taxonomy
 from app.reviewer.context import ReviewerContext, get_reviewer_context
 
 logger = logging.getLogger(__name__)
@@ -38,6 +38,10 @@ class CaseCreate(BaseModel):
 
 class CaseUpdate(BaseModel):
     applicant_name: Optional[str] = Field(None, max_length=300)
+    # Answers that decide which rules apply. An unanswered key is never read as
+    # "no" - the evaluator returns unknown and the rule escalates.
+    profile: Optional[Dict[str, Any]] = None
+    filing_date: Optional[str] = None
     property_address: Optional[str] = Field(None, max_length=500)
     catastro: Optional[str] = Field(None, max_length=64)
     status: Optional[str] = None
@@ -54,7 +58,8 @@ class DocumentTypeOverride(BaseModel):
 
 _CASE_FIELDS = (
     "id,case_number,permit_type,applicant_name,property_address,catastro,"
-    "status,assigned_reviewer_id,ruleset_version_id,created_at,updated_at"
+    "status,assigned_reviewer_id,ruleset_version_id,profile,filing_date,"
+    "created_at,updated_at"
 )
 
 _DOCUMENT_FIELDS = (
@@ -424,3 +429,107 @@ def override_document_type(
     )
 
     return _shape_document(rows[0]) if rows else {}
+
+
+# =============================================================================
+# Extraction and evaluation
+# =============================================================================
+
+@router.post("/cases/{case_id}/extract")
+def extract_case_facts(
+    case_id: str,
+    ctx: ReviewerContext = Depends(get_reviewer_context),
+):
+    """
+    Read the facts out of every classified document on the case.
+
+    Each field is read twice - once from the text layer, once from the page
+    images - and the band records whether the two agreed. Facts are appended,
+    so re-running after a document is replaced supersedes without erasing.
+    """
+    ctx.require_write()
+    _get_case_or_404(ctx, case_id)
+    return evaluation.run_extraction(ctx, case_id)
+
+
+@router.post("/cases/{case_id}/evaluate")
+def evaluate_case_rules(
+    case_id: str,
+    ctx: ReviewerContext = Depends(get_reviewer_context),
+):
+    """
+    Run the rules against the extracted facts.
+
+    Evaluated under the ruleset the case was stamped with when it was opened,
+    not the office's current one.
+    """
+    ctx.require_write()
+    case = _get_case_or_404(ctx, case_id)
+
+    result = evaluation.run_evaluation(ctx, case_id, case)
+    if "error" in result:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=result["error"])
+    return result
+
+
+@router.get("/cases/{case_id}/checks")
+def case_checks(
+    case_id: str,
+    ctx: ReviewerContext = Depends(get_reviewer_context),
+):
+    """
+    The latest result of each rule on this case, newest evaluation first.
+
+    Reads the whole append-only history and keeps the most recent row per rule,
+    rather than relying on the database view, so the same shape comes back
+    whether or not `compliance_checks_current` has been created.
+    """
+    _get_case_or_404(ctx, case_id)
+
+    rows = ctx.db.select(
+        "compliance_checks",
+        columns=(
+            "id,rule_id,family,status,band,evidence_ids,citations,explanation,"
+            "reason_code,evaluated_at"
+        ),
+        filters={"case_id": f"eq.{case_id}"},
+        order="evaluated_at.desc",
+    )
+
+    latest: Dict[str, Dict[str, Any]] = {}
+    for row in rows:
+        latest.setdefault(row["rule_id"], row)
+
+    checks = list(latest.values())
+    counts = {
+        "sin_hallazgos": sum(1 for c in checks if c["status"] == "sin_hallazgos"),
+        "hallazgo_identificado": sum(1 for c in checks if c["status"] == "hallazgo_identificado"),
+        "requiere_criterio": sum(1 for c in checks if c["status"] == "requiere_criterio"),
+        "total_evaluadas": len(checks),
+    }
+    return {"resumen": counts, "verificaciones": checks}
+
+
+@router.get("/cases/{case_id}/facts")
+def case_facts(
+    case_id: str,
+    ctx: ReviewerContext = Depends(get_reviewer_context),
+):
+    """Extracted facts, newest reading of each field."""
+    _get_case_or_404(ctx, case_id)
+
+    rows = ctx.db.select(
+        "extracted_facts",
+        columns=(
+            "id,document_id,field_key,value_text,value_date,value_num,"
+            "source_page,band,status,extracted_at"
+        ),
+        filters={"case_id": f"eq.{case_id}"},
+        order="extracted_at.desc",
+    )
+
+    latest: Dict[str, Dict[str, Any]] = {}
+    for row in rows:
+        latest.setdefault(row["field_key"], row)
+
+    return {"campos": list(latest.values())}

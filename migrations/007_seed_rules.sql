@@ -1,7 +1,7 @@
 -- =============================================================================
 -- PYXTEN 007 - SEED RULES for the Permiso Unico baseline ruleset
 --
--- Rules are data. Nothing in this file is logic; it is thirty-one rows that the
+-- Rules are data. Nothing in this file is logic; it is thirty-three rows that the
 -- deterministic evaluator in api/app/reviewer/rules/ reads.
 --
 -- Run after 006. Idempotent.
@@ -221,6 +221,14 @@ SELECT r.id, v.code, v.title, v.family, v.authority, v.citation,
  '{"not": {"field_present": {"field": "certificado_bomberos.entidad_emisora"}}}',
  'moderada', TRUE),
 
+('V-12', 'Certificado de salud emitido por el Departamento de Salud', 'vigencia', 'RC-2023', 'Reglamento Conjunto 2023',
+ '{"doc_present": {"type": "certificado_salud"}}',
+ '["certificado_salud"]',
+ '{"issued_by": {"field": "certificado_salud.entidad_emisora", "keywords": ["salud", "departamento de salud"]}}',
+ '{"not": {"issued_by": {"field": "certificado_salud.entidad_emisora", "keywords": ["salud", "departamento de salud"]}}}',
+ '{"not": {"field_present": {"field": "certificado_salud.entidad_emisora"}}}',
+ 'moderada', TRUE),
+
 ('V-11', 'Plano de distribucion firmado por profesional autorizado', 'vigencia', 'RC-2023', 'Reglamento Conjunto 2023',
  '{"doc_present": {"type": "plano_distribucion"}}',
  '["plano_distribucion"]',
@@ -319,6 +327,17 @@ SELECT r.id, v.code, v.title, v.family, v.authority, v.citation,
  'leve', TRUE),
 
 
+-- The tenant on the lease has to be the person asking for the permit.
+('C-09', 'El arrendatario del contrato es el solicitante', 'consistencia', 'RC-2023', 'Reglamento Conjunto 2023',
+ '{"all": [{"profile_is": {"key": "tenencia", "value": "arrendatario"}},
+           {"doc_present": {"type": "contrato_arrendamiento"}},
+           {"doc_present": {"type": "patente_municipal"}}]}',
+ '["contrato_arrendamiento", "patente_municipal"]',
+ '{"field_equals": {"left": "contrato_arrendamiento.arrendatario", "right": "patente_municipal.nombre_solicitante", "normalize": "entity_name"}}',
+ '{"not": {"field_equals": {"left": "contrato_arrendamiento.arrendatario", "right": "patente_municipal.nombre_solicitante", "normalize": "entity_name"}}}',
+ NULL, 'grave', TRUE),
+
+
 -- =============================================================================
 -- FAMILIA: APLICABILIDAD
 --
@@ -360,7 +379,7 @@ BEGIN
 END $$;
 
 -- =============================================================================
--- DONE. 31 rules: 11 presencia, 11 vigencia, 8 consistencia, 1 aplicabilidad
+-- DONE. 33 rules: 11 presencia, 12 vigencia, 9 consistencia, 1 aplicabilidad
 -- (disabled). Next: fact extraction, which must produce the field keys these
 -- conditions reference.
 -- =============================================================================
