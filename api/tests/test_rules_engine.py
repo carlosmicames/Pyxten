@@ -262,16 +262,51 @@ def test_review_condition_beats_both_pass_and_fail():
 
 # --- net 1 -------------------------------------------------------------------
 
-def test_finding_without_evidence_is_downgraded():
-    """A finding that points at nothing is not a finding."""
-    rule = {
-        "id": "r2", "code": "X-01", "family": "presencia", "title": "Sin evidencia",
-        "citation": "RC 2023",
-        "fail_condition": {"not": {"doc_present": {"type": "certificado_salud"}}},
-    }
-    result = evaluate_rule(rule, make_ctx())
+MISSING_DOC_RULE = {
+    "id": "r2", "code": "P-06", "family": "presencia",
+    "title": "Certificado de salud presente", "citation": "RC 2023",
+    "fail_condition": {"not": {"doc_present": {"type": "certificado_salud"}}},
+}
+
+
+def test_missing_document_is_a_finding_evidenced_by_the_inventory():
+    """
+    "You did not file a health certificate" is the commonest deficiency there is
+    and it has no document of its own to cite. The evidence is the inventory:
+    here is everything that WAS filed, and none of it is the required document.
+    """
+    result = evaluate_rule(MISSING_DOC_RULE, make_ctx())
+
+    assert result.status == HALLAZGO_IDENTIFICADO
+    # Every filed document backs the claim about what is absent.
+    assert set(result.evidence_ids) == {"doc-patente", "doc-registro", "doc-bomberos"}
+    assert "expediente.inventario" in {c["field_key"] for c in result.citations}
+
+
+def test_empty_expediente_escalates_instead_of_generating_findings():
+    """
+    A case with nothing filed is an intake problem, not eleven accusations
+    against an applicant. With no inventory to cite, the evidence net catches it.
+    """
+    ctx = make_ctx(document_types=[], document_ids_by_type={}, facts={})
+    result = evaluate_rule(MISSING_DOC_RULE, ctx)
+
     assert result.status == REQUIERE_CRITERIO
     assert result.reason_code == "hallazgo_sin_evidencia"
+
+
+def test_field_contains_matches_keywords_loosely():
+    ctx = make_ctx()
+    ctx.facts["registro.estatus"] = Fact(
+        "registro.estatus", value_text="ESTATUS: ACTIVO",
+        document_id="doc-registro", source_page=1, band="alta",
+    )
+    assert evaluate(
+        {"field_contains": {"field": "registro.estatus", "keywords": ["activo"]}}, ctx
+    ) is Tri.TRUE
+    assert evaluate(
+        {"field_contains": {"field": "registro.estatus", "keywords": ["revocado", "inactivo"]}}, ctx
+    ) is Tri.FALSE
 
 
 # --- net 2 -------------------------------------------------------------------

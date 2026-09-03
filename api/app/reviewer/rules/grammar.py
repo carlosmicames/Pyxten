@@ -8,7 +8,8 @@ to fit on one page. So this is a CLOSED grammar:
 
   combinators   all · any · not
   predicates    doc_present · profile_is · field_present · field_equals
-                field_matches · date_on_or_after · issued_by · external_agrees
+                field_matches · field_contains · date_on_or_after · issued_by
+                external_agrees
   normalizers   catastro · address · entity_name · person_name
                 municipality · exact
 
@@ -142,6 +143,35 @@ class Context:
             }
         )
 
+    def cite_inventory(self) -> None:
+        """
+        Evidence that a required document is missing.
+
+        "You did not file a fire certificate" is the commonest deficiency there
+        is, and it has no document of its own to point at. What it does have is
+        the inventory: these are the documents that WERE filed, and none of them
+        is the one required. That is the evidence, and it is what a reviewer
+        would attach to the notice.
+
+        A case with nothing filed at all cites nothing, so the evidence net
+        escalates it - an empty expediente is an intake problem, not eleven
+        findings against an applicant.
+        """
+        for document_id in self.document_ids_by_type.values():
+            if document_id and document_id not in self.evidence:
+                self.evidence.append(document_id)
+        if self.document_ids_by_type:
+            self.citations.append(
+                {
+                    "field_key": "expediente.inventario",
+                    "document_id": None,
+                    "page": None,
+                    "value": ", ".join(sorted(self.document_types)),
+                    # The inventory is what the office received; that is certain.
+                    "band": "alta",
+                }
+            )
+
     def resolve(self, path: str) -> Optional[Fact]:
         """
         Look up a field. `case.*` and `profile.*` read the application record;
@@ -173,6 +203,8 @@ def _p_doc_present(args: Dict, ctx: Context) -> Tri:
     present = doc_type in ctx.document_types
     if present:
         ctx.cite_document(doc_type)
+    else:
+        ctx.cite_inventory()
     return Tri.of(present)
 
 
@@ -264,10 +296,12 @@ def _p_date_on_or_after(args: Dict, ctx: Context) -> Tri:
     return Tri.of(subject >= reference)
 
 
-def _p_issued_by(args: Dict, ctx: Context) -> Tri:
+def _p_field_contains(args: Dict, ctx: Context) -> Tri:
     """
-    Does the issuing entity match expectation? Compared by keyword rather than
-    exact string, because agencies write their own names inconsistently.
+    Does a field mention any of these keywords?
+
+    Keyword rather than exact match, because agencies and forms write the same
+    thing many ways - "Activo", "ESTATUS: ACTIVO", "Comerciante activo".
     """
     fact = ctx.resolve(args.get("field", ""))
     expected = args.get("expected")
@@ -284,6 +318,16 @@ def _p_issued_by(args: Dict, ctx: Context) -> Tri:
 
     haystack = basic(str(fact.value))
     return Tri.of(any(basic(word) in haystack for word in keywords if word))
+
+
+def _p_issued_by(args: Dict, ctx: Context) -> Tri:
+    """
+    Did the expected agency issue this document?
+
+    Same mechanics as field_contains, kept as its own name because a rule that
+    reads `issued_by` states its intent to anyone auditing the ruleset.
+    """
+    return _p_field_contains(args, ctx)
 
 
 def _p_external_agrees(args: Dict, ctx: Context) -> Tri:
@@ -327,6 +371,7 @@ PREDICATES: Dict[str, Callable[[Dict, Context], Tri]] = {
     "field_equals": _p_field_equals,
     "field_matches": _p_field_matches,
     "date_on_or_after": _p_date_on_or_after,
+    "field_contains": _p_field_contains,
     "issued_by": _p_issued_by,
     "external_agrees": _p_external_agrees,
 }

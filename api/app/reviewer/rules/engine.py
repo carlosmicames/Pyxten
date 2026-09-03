@@ -41,6 +41,7 @@ HALLAZGO_IDENTIFICADO = "hallazgo_identificado"
 REQUIERE_CRITERIO = "requiere_criterio"
 
 FAMILY_CONSISTENCY = "consistencia"
+FAMILY_PRESENCE = "presencia"
 
 # Worst band wins: a conclusion is only as good as its weakest reading.
 _BAND_ORDER = {"alta": 3, "media": 2, "baja": 1}
@@ -99,7 +100,15 @@ def _describe(rule: Dict[str, Any], ctx: Context, status: str) -> str:
 
     if status == HALLAZGO_IDENTIFICADO and rule.get("family") == FAMILY_CONSISTENCY:
         # A contradiction claim must name both sides and the difference.
-        seen = [c for c in ctx.citations if c.get("value")]
+        #
+        # Only field readings qualify. `applies_when` runs first and cites the
+        # documents it checked for presence, so without this filter the notice
+        # would quote document type names instead of the values that disagree.
+        seen = [
+            c for c in ctx.citations
+            if c.get("value")
+            and not c["field_key"].startswith(("documento.", "expediente."))
+        ]
         if len(seen) >= 2:
             left, right = seen[0], seen[1]
             parts.append(
@@ -107,6 +116,23 @@ def _describe(rule: Dict[str, Any], ctx: Context, status: str) -> str:
                 f"p. {left['page']}) frente a '{right['value']}' "
                 f"(documento {right['document_id']}, p. {right['page']})."
             )
+    elif status == HALLAZGO_IDENTIFICADO and rule.get("family") == FAMILY_PRESENCE:
+        # A presence finding is about an absence, and the rule title is phrased
+        # as the satisfied state ("Certificado de bomberos presente"). Saying
+        # what is missing, against what was reviewed, is what belongs in a notice.
+        inventory = next(
+            (c for c in ctx.citations if c["field_key"] == "expediente.inventario"), None
+        )
+        required = rule.get("required_evidence") or []
+        missing = ", ".join(required) if required else "el documento requerido"
+        if inventory and inventory.get("value"):
+            parts.append(
+                f"No se localizo {missing} entre los documentos radicados "
+                f"({inventory['value']})."
+            )
+        else:
+            parts.append(f"No se localizo {missing} en el expediente.")
+
     elif ctx.citations:
         located = [c for c in ctx.citations if c.get("document_id")]
         if located:
