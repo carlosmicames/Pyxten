@@ -16,7 +16,9 @@ REVIEWER_ROUTER = Path(__file__).resolve().parents[1] / "app" / "routers" / "rev
 
 
 def reviewer_files():
-    return list(REVIEWER_PACKAGE.glob("*.py")) + [REVIEWER_ROUTER]
+    # rglob, not glob: the rules/ subpackage is where the deterministic engine
+    # lives, and it is the last place an LLM import should be able to appear.
+    return list(REVIEWER_PACKAGE.rglob("*.py")) + [REVIEWER_ROUTER]
 
 
 def reviewer_sources():
@@ -67,6 +69,24 @@ def test_reviewer_path_never_imports_openai():
         assert "openai" not in code.lower(), (
             f"{name} references OpenAI in code; the reviewer path is Anthropic-only"
         )
+
+
+def test_rule_engine_imports_no_model_client_at_all():
+    """
+    The deterministic engine decides every outcome. A model may extract facts;
+    it may never set a check's state. The cheapest way to keep that true over
+    time is to make it impossible to import a model client from this package.
+    """
+    engine_dir = REVIEWER_PACKAGE / "rules"
+    assert engine_dir.is_dir()
+
+    for path in engine_dir.rglob("*.py"):
+        code = ast.unparse(_strip_docstrings(ast.parse(path.read_text(encoding="utf-8")))).lower()
+        for vendor in ("anthropic", "openai", "langchain", "litellm"):
+            assert vendor not in code, (
+                f"rules/{path.name} references {vendor}; rule evaluation must stay "
+                "plain Python over structured facts"
+            )
 
 
 def test_classifier_uses_anthropic():
