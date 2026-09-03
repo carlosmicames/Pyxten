@@ -16,6 +16,7 @@ import {
   GIS_SOURCE_LABELS,
   GisOutcome,
   QUALITY_LABELS,
+  Requerimiento,
   ReviewerIdentity,
   formatDate,
   reviewerApi,
@@ -23,6 +24,7 @@ import {
 import ChecksPanel from '@/components/reviewer/ChecksPanel'
 import DocumentUploader from '@/components/reviewer/DocumentUploader'
 import PerfilCaso from '@/components/reviewer/PerfilCaso'
+import RequerimientoPanel from '@/components/reviewer/RequerimientoPanel'
 import SinAcceso from '@/components/reviewer/SinAcceso'
 
 const EVENT_LABELS: Record<string, string> = {
@@ -37,9 +39,11 @@ const EVENT_LABELS: Record<string, string> = {
   extraction_run: 'Lectura de documentos ejecutada',
   gis_lookup_run: 'Consulta de calificacion ejecutada',
   evaluation_run: 'Reglas evaluadas',
+  requerimiento_drafted: 'Borrador de requerimiento generado',
+  requerimiento_approved: 'Requerimiento aprobado',
 }
 
-type Tab = 'verificaciones' | 'documentos' | 'perfil' | 'bitacora'
+type Tab = 'verificaciones' | 'requerimiento' | 'documentos' | 'perfil' | 'bitacora'
 
 export default function CasoPage() {
   const params = useParams<{ id: string }>()
@@ -52,6 +56,7 @@ export default function CasoPage() {
   const [checks, setChecks] = useState<ComplianceCheck[]>([])
   const [summary, setSummary] = useState<CheckSummary | null>(null)
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([])
+  const [requerimiento, setRequerimiento] = useState<Requerimiento | null>(null)
 
   const [tab, setTab] = useState<Tab>('verificaciones')
   const [loading, setLoading] = useState(true)
@@ -83,6 +88,9 @@ export default function CasoPage() {
           setDocuments(detail.documents)
           setDocumentTypes(types)
           await loadChecks(caseId)
+
+          const current = await reviewerApi.getRequerimiento(caseId)
+          if (current && 'id' in current) setRequerimiento(current as Requerimiento)
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Error cargando el expediente')
         }
@@ -165,6 +173,7 @@ export default function CasoPage() {
       label: 'Verificaciones',
       badge: summary?.hallazgo_identificado || undefined,
     },
+    { id: 'requerimiento', label: 'Requerimiento' },
     { id: 'documentos', label: 'Documentos', badge: documents.length || undefined },
     { id: 'perfil', label: 'Perfil' },
     { id: 'bitacora', label: 'Bitacora' },
@@ -306,6 +315,17 @@ export default function CasoPage() {
           summary={summary}
           documents={documents}
           evaluatedAt={lastEvaluated}
+        />
+      )}
+
+      {tab === 'requerimiento' && (
+        <RequerimientoPanel
+          caseId={caseRecord.id}
+          requerimiento={requerimiento}
+          findingCount={summary?.hallazgo_identificado || 0}
+          pendingCount={summary?.requiere_criterio || 0}
+          canWrite={identity.can_write}
+          onChanged={setRequerimiento}
         />
       )}
 

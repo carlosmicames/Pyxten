@@ -116,7 +116,7 @@ def stub_classifier(monkeypatch):
     from app.reviewer import classifier, intake
     from app.reviewer.classifier import Classification
 
-    def fake(analysis, filename, content):
+    def fake(analysis, filename, content, doc_types=None):
         return Classification(
             doc_type="certificacion_deuda_crim",
             band="alta",

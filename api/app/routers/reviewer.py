@@ -13,10 +13,10 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
 from pydantic import BaseModel, Field
 
-from app.reviewer import audit, evaluation, gis, intake, taxonomy
+from app.reviewer import audit, evaluation, gis, intake, notice, notice_pdf, taxonomy
 from app.reviewer.context import ReviewerContext, get_reviewer_context
 
 logger = logging.getLogger(__name__)
@@ -69,11 +69,13 @@ _DOCUMENT_FIELDS = (
 )
 
 
-def _shape_document(row: Dict[str, Any]) -> Dict[str, Any]:
+def _shape_document(
+    row: Dict[str, Any], doc_types: Optional[List[Dict[str, Any]]] = None
+) -> Dict[str, Any]:
     """Add the display label; never expose the storage path or a numeric score."""
     return {
         **{k: v for k, v in row.items() if k != "storage_uri"},
-        "doc_type_label": taxonomy.label_for(row.get("doc_type")),
+        "doc_type_label": taxonomy.label_for(row.get("doc_type"), doc_types),
     }
 
 
@@ -118,8 +120,13 @@ def whoami(ctx: ReviewerContext = Depends(get_reviewer_context)):
 
 @router.get("/taxonomy")
 def document_taxonomy(ctx: ReviewerContext = Depends(get_reviewer_context)):
-    """The document types this office classifies into, including `desconocido`."""
-    return taxonomy.permiso_unico_types()
+    """
+    The document types this office classifies into, including `desconocido`.
+
+    Read from the office's active ruleset, so the checklist a reviewer sees is
+    the one the rules are written against.
+    """
+    return taxonomy.types_for_ruleset(ctx, ctx.active_ruleset_id)
 
 
 # =============================================================================
@@ -227,8 +234,12 @@ def get_case(case_id: str, ctx: ReviewerContext = Depends(get_reviewer_context))
         filters={"case_id": f"eq.{case_id}"},
         order="uploaded_at.asc",
     )
+    doc_types = taxonomy.types_for_ruleset(ctx, case.get("ruleset_version_id"))
 
-    return {"case": case, "documents": [_shape_document(d) for d in documents]}
+    return {
+        "case": case,
+        "documents": [_shape_document(d, doc_types) for d in documents],
+    }
 
 
 @router.patch("/cases/{case_id}")
@@ -293,7 +304,7 @@ async def upload_documents(
     documents should not lose four of them because one was a photograph.
     """
     ctx.require_write()
-    _get_case_or_404(ctx, case_id)
+    case = _get_case_or_404(ctx, case_id)
 
     if not files:
         raise HTTPException(
@@ -309,11 +320,19 @@ async def upload_documents(
     stored: List[Dict[str, Any]] = []
     rejected: List[Dict[str, str]] = []
 
+    # Resolved once: the case's own ruleset decides what these can be classified as.
+    doc_types = taxonomy.types_for_ruleset(ctx, case.get("ruleset_version_id"))
+
     for upload in files:
         filename = upload.filename or "documento.pdf"
         try:
             content = await upload.read()
-            stored.append(_shape_document(intake.ingest_document(ctx, case_id, filename, content)))
+            stored.append(
+                _shape_document(
+                    intake.ingest_document(ctx, case_id, filename, content, doc_types),
+                    doc_types,
+                )
+            )
         except HTTPException as exc:
             rejected.append({"filename": filename, "reason": str(exc.detail)})
         except Exception as exc:
@@ -385,7 +404,8 @@ def override_document_type(
     """
     ctx.require_write()
 
-    if data.doc_type not in taxonomy.valid_codes():
+    doc_types = taxonomy.types_for_ruleset(ctx, ctx.active_ruleset_id)
+    if data.doc_type not in taxonomy.valid_codes(doc_types):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Tipo de documento no valido: {data.doc_type}",
@@ -428,7 +448,7 @@ def override_document_type(
         },
     )
 
-    return _shape_document(rows[0]) if rows else {}
+    return _shape_document(rows[0], doc_types) if rows else {}
 
 
 # =============================================================================
@@ -571,3 +591,89 @@ def case_facts(
         latest.setdefault(row["field_key"], row)
 
     return {"campos": list(latest.values())}
+
+
+# =============================================================================
+# Requerimiento de subsanacion
+#
+# Nothing here sends anything to an applicant. There is no email path, no
+# recipient, no delivery status - approval marks a document as ready for a
+# person to serve, and that is where this system stops.
+# =============================================================================
+
+@router.post("/cases/{case_id}/requerimiento", status_code=status.HTTP_201_CREATED)
+def draft_requerimiento(
+    case_id: str,
+    ctx: ReviewerContext = Depends(get_reviewer_context),
+):
+    """
+    Draft a deficiency notice from the case's identified findings.
+
+    Only `hallazgo_identificado` checks go in. A case whose checks are all
+    passing or all awaiting a reviewer produces no notice, and says why.
+    """
+    ctx.require_write()
+    case = _get_case_or_404(ctx, case_id)
+
+    result = notice.build(ctx, case_id, case)
+    if "error" in result:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=result["error"])
+    return result
+
+
+@router.get("/cases/{case_id}/requerimiento")
+def get_requerimiento(
+    case_id: str,
+    ctx: ReviewerContext = Depends(get_reviewer_context),
+):
+    """The most recent draft, or null when none has been generated."""
+    _get_case_or_404(ctx, case_id)
+    return notice.latest(ctx, case_id) or {}
+
+
+@router.get("/cases/{case_id}/requerimiento.pdf")
+def requerimiento_pdf(
+    case_id: str,
+    ctx: ReviewerContext = Depends(get_reviewer_context),
+):
+    """
+    Render the notice. A draft carries a BORRADOR watermark on every page; the
+    watermark comes off only once the document has been approved, which is a
+    stored state rather than something a caller can ask for.
+    """
+    case = _get_case_or_404(ctx, case_id)
+    current = notice.latest(ctx, case_id)
+    if not current:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Este expediente no tiene un requerimiento generado.",
+        )
+
+    pdf = notice_pdf.render(current)
+    label = "aprobado" if current.get("status") == "aprobado" else "borrador"
+    filename = f"requerimiento-{case.get('case_number')}-v{current.get('version')}-{label}.pdf"
+
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
+
+
+@router.post("/requerimientos/{requerimiento_id}/approve")
+def approve_requerimiento(
+    requerimiento_id: str,
+    ctx: ReviewerContext = Depends(get_reviewer_context),
+):
+    """
+    Record that a reviewer approved this draft.
+
+    This removes the watermark and nothing else. Serving the notice on the
+    applicant remains a human act, performed outside this system.
+    """
+    ctx.require_write()
+
+    result = notice.approve(ctx, requerimiento_id)
+    if "error" in result:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=result["error"])
+    return result

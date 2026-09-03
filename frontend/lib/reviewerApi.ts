@@ -200,9 +200,49 @@ export interface CaseProfile {
   radica_representante?: boolean
 }
 
+export interface RequerimientoHallazgo {
+  numero: number
+  rule_code: string
+  titulo: string
+  severidad: string
+  parrafo: string
+  subsanacion: string
+  fundamento: string | null
+  /** 'modelo' when drafted automatically, 'sistema' when the engine wrote it. */
+  generado: 'modelo' | 'sistema'
+  /** Why an automatically drafted paragraph was rejected, when it was. */
+  descartado_por: string | null
+  evidencia: { documento: string; pagina: number; valor: string | null }[]
+}
+
+export interface Requerimiento {
+  id: string
+  case_id: string
+  version: number
+  status: 'borrador' | 'aprobado' | 'descartado'
+  finding_ids: string[]
+  body: {
+    encabezado: Record<string, string | null>
+    introduccion: string
+    hallazgos: RequerimientoHallazgo[]
+    cierre: string
+    pendientes_de_criterio: { rule_code: string | null }[]
+  }
+  model_used: string | null
+  generated_at: string
+  approved_at: string | null
+  generated_by: string | null
+  approved_by: string | null
+}
+
 // =============================================================================
 // Transport
 // =============================================================================
+
+/** Base URL, for the few places that build a link rather than fetch. */
+export function getApiBase(): string {
+  return API_BASE_URL
+}
 
 async function authHeaders(): Promise<Record<string, string>> {
   const token = await getAccessToken()
@@ -321,6 +361,21 @@ export const reviewerApi = {
 
   facts: (caseId: string) =>
     request<{ campos: ExtractedFactRow[] }>(`/reviewer/cases/${caseId}/facts`),
+
+  draftRequerimiento: (caseId: string) =>
+    request<Requerimiento>(`/reviewer/cases/${caseId}/requerimiento`, {
+      method: 'POST',
+    }),
+
+  getRequerimiento: (caseId: string) =>
+    request<Requerimiento | Record<string, never>>(
+      `/reviewer/cases/${caseId}/requerimiento`
+    ),
+
+  approveRequerimiento: (id: string) =>
+    request<Requerimiento>(`/reviewer/requerimientos/${id}/approve`, {
+      method: 'POST',
+    }),
 
   documentUrl: (documentId: string) =>
     request<{ url: string; expires_in: number }>(`/reviewer/documents/${documentId}/url`),

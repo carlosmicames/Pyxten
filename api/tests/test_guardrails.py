@@ -14,6 +14,14 @@ import pytest
 REVIEWER_PACKAGE = Path(__file__).resolve().parents[1] / "app" / "reviewer"
 REVIEWER_ROUTER = Path(__file__).resolve().parents[1] / "app" / "routers" / "reviewer.py"
 
+# A minimal taxonomy for the classifier tests; the real one comes from the
+# case's ruleset via document_types.
+_TYPES = [
+    {"code": "escritura_propiedad", "name": "Escritura de Propiedad", "description": ""},
+    {"code": "plano_mensura", "name": "Plano de Mensura", "description": ""},
+    {"code": "desconocido", "name": "Desconocido", "description": ""},
+]
+
 
 def reviewer_files():
     # rglob, not glob: the rules/ subpackage is where the deterministic engine
@@ -123,11 +131,33 @@ def test_classifier_schema_does_not_request_confidence():
 # Exact decision-state labels; the forbidden words never appear
 # =============================================================================
 
+# notice.py must name the banned words in order to reject prose containing
+# them. A rejection list is the opposite of emitting, and this is the only
+# exemption. Matched as a pattern because reviewer_code() returns unparsed AST,
+# which normalises quoting.
+_FORBIDDEN_WORD_EXEMPTIONS = {
+    "notice.py": (re.compile(r"_FORBIDDEN\s*=\s*\([^)]*\)"),),
+}
+
+
 def test_forbidden_compliance_words_absent():
     for name, code in reviewer_code().items():
+        for allowed in _FORBIDDEN_WORD_EXEMPTIONS.get(name, ()):
+            code = allowed.sub("", code)
+
         upper = code.upper()
         assert "NON-COMPLIANT" not in upper, f"{name} contains NON-COMPLIANT"
         assert not re.search(r"\bCOMPLIANT\b", upper), f"{name} contains COMPLIANT"
+
+
+def test_the_notice_validator_still_blocks_those_words():
+    """The exemption above is only safe while the rejection it protects works."""
+    from app.reviewer.notice import Finding, _validate
+
+    finding = Finding("c", "P-01", "t", "RC 2023", "grave", "e", [])
+    assert _validate("El expediente es COMPLIANT.", finding)
+    assert _validate("Resultado NON-COMPLIANT.", finding)
+    assert _validate("Texto normal sin problemas.", finding) is None
 
 
 # =============================================================================
@@ -163,7 +193,7 @@ def test_scanned_documents_never_reach_the_highest_band(monkeypatch):
 
     content = blank_pdf(3)
     analysis = classifier_analysis(content)
-    result = classifier.classify(analysis, "escaneo.pdf", content)
+    result = classifier.classify(analysis, "escaneo.pdf", content, _TYPES)
 
     assert result.doc_type == "escritura_propiedad"
     assert result.band == "media"
@@ -197,7 +227,7 @@ def test_disagreeing_views_produce_no_label(monkeypatch):
         ]
     )
     analysis = classifier_analysis(content)
-    result = classifier.classify(analysis, "mixto.pdf", content)
+    result = classifier.classify(analysis, "mixto.pdf", content, _TYPES)
 
     assert result.doc_type == "desconocido"
     assert result.band == "baja"
@@ -209,7 +239,8 @@ def test_out_of_catalog_code_is_rejected():
     from app.reviewer.classifier import _normalize
 
     code, page, quote = _normalize(
-        {"doc_type": "inventado_por_el_modelo", "evidence_page": 3, "evidence_quote": "x"}
+        {"doc_type": "inventado_por_el_modelo", "evidence_page": 3, "evidence_quote": "x"},
+        {"escritura_propiedad", "plano_mensura", "desconocido"},
     )
     assert code is None
 
@@ -221,7 +252,7 @@ def test_missing_api_key_degrades_to_unknown_not_a_guess(monkeypatch):
     monkeypatch.setattr(classifier, "_client", lambda: None)
 
     content = make_pdf(["texto cualquiera de prueba para el documento"])
-    result = classifier.classify(classifier_analysis(content), "x.pdf", content)
+    result = classifier.classify(classifier_analysis(content), "x.pdf", content, _TYPES)
 
     assert result.doc_type == "desconocido"
     assert result.band == "baja"

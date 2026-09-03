@@ -126,7 +126,9 @@ def _ask(client, model: str, content) -> Optional[dict]:
         return None
 
 
-def _normalize(raw: Optional[dict]) -> Tuple[Optional[str], Optional[int], str]:
+def _normalize(
+    raw: Optional[dict], codes: set
+) -> Tuple[Optional[str], Optional[int], str]:
     """
     Pull a valid type code, page, and quote out of a model response.
 
@@ -137,7 +139,7 @@ def _normalize(raw: Optional[dict]) -> Tuple[Optional[str], Optional[int], str]:
         return None, None, ""
 
     code = (raw.get("doc_type") or "").strip()
-    if code not in taxonomy.valid_codes():
+    if code not in codes:
         logger.info("Model returned an out-of-catalog code: %r", code)
         return None, None, ""
 
@@ -147,9 +149,9 @@ def _normalize(raw: Optional[dict]) -> Tuple[Optional[str], Optional[int], str]:
     return code, page, (raw.get("evidence_quote") or "").strip()[:500]
 
 
-def _text_prompt(view_label: str, body: str) -> str:
+def _text_prompt(view_label: str, body: str, catalog: str) -> str:
     return (
-        f"CATALOGO DE DOCUMENTOS DEL PERMISO UNICO:\n{taxonomy.catalog_for_prompt()}\n\n"
+        f"CATALOGO DE DOCUMENTOS DEL PERMISO UNICO:\n{catalog}\n\n"
         f"VISTA DEL DOCUMENTO ({view_label}):\n{body}\n\n"
         "Clasifica este documento."
     )
@@ -159,6 +161,7 @@ def classify(
     analysis: PdfAnalysis,
     filename: str,
     pdf_bytes: bytes,
+    doc_types: list,
 ) -> Classification:
     """
     Classify one document and derive its band.
@@ -177,6 +180,8 @@ def classify(
         )
 
     model = get_settings().reviewer_model
+    catalog = taxonomy.catalog_for_prompt(doc_types)
+    codes = taxonomy.valid_codes(doc_types)
 
     # ---- Case 1: nothing readable at all -------------------------------------
     if analysis.ocr_status == "error":
@@ -214,11 +219,12 @@ def classify(
                 "text": _text_prompt(
                     f"documento escaneado, primeras {_SCAN_PAGE_LIMIT} paginas, archivo '{filename}'",
                     "(sin texto incrustado; lee las imagenes)",
+                    catalog,
                 ),
             },
         ]
 
-        code, page, _quote = _normalize(_ask(client, model, content))
+        code, page, _quote = _normalize(_ask(client, model, content), codes)
 
         if code is None:
             return Classification(
@@ -251,7 +257,8 @@ def classify(
     full_view = analysis.combined_text()
 
     code_a, page_a, _ = _normalize(
-        _ask(client, model, _text_prompt(f"primera pagina con texto, archivo '{filename}'", first_view))
+        _ask(client, model, _text_prompt(f"primera pagina con texto, archivo '{filename}'", first_view, catalog)),
+        codes,
     )
 
     # A very short document has no meaningful second view; treat it as one pass
@@ -282,7 +289,8 @@ def classify(
         )
 
     code_b, page_b, _ = _normalize(
-        _ask(client, model, _text_prompt(f"texto completo, archivo '{filename}'", full_view))
+        _ask(client, model, _text_prompt(f"texto completo, archivo '{filename}'", full_view, catalog)),
+        codes,
     )
 
     if code_a is None or code_b is None:
@@ -308,8 +316,8 @@ def classify(
             band="baja",
             reason=(
                 "vistas_contradictorias: la primera pagina sugiere "
-                f"'{taxonomy.label_for(code_a)}' y el texto completo sugiere "
-                f"'{taxonomy.label_for(code_b)}'"
+                f"'{taxonomy.label_for(code_a, doc_types)}' y el texto completo sugiere "
+                f"'{taxonomy.label_for(code_b, doc_types)}'"
             ),
             evidence_page=page_a or page_b,
         )

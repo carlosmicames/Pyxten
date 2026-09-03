@@ -56,6 +56,7 @@ def ingest_document(
     case_id: str,
     filename: str,
     content: bytes,
+    doc_types: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """
     Store one PDF against a case, index its pages, and classify it.
@@ -65,6 +66,11 @@ def ingest_document(
     as a document with `desconocido` and a reason, which is a valid outcome.
     """
     validate_upload(filename, content)
+
+    # Classify against the taxonomy this case's ruleset defines, not a list
+    # baked into the code - the checklist is versioned with the rules.
+    if doc_types is None:
+        doc_types = taxonomy.types_for_ruleset(ctx, ctx.active_ruleset_id)
 
     analysis = analyze_pdf(content)
 
@@ -127,7 +133,7 @@ def ingest_document(
     _store_pages(ctx, document_id, analysis)
 
     # --- Classify -------------------------------------------------------------
-    result = classify(analysis, filename, content)
+    result = classify(analysis, filename, content, doc_types)
 
     updates = {
         "doc_type": result.doc_type,
