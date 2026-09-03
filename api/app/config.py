@@ -16,10 +16,17 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_jwt_aud: str = "authenticated"
     supabase_jwt_secret: str = ""
+    # Anon key. Needed by the reviewer console, which reaches Postgres through
+    # PostgREST as the signed-in user so Row Level Security does the isolating.
+    supabase_anon_key: str = ""
 
     # External APIs
     google_maps_api_key: str = ""
     openai_api_key: str = ""
+    # Anthropic powers the reviewer path only. The applicant flow keeps using
+    # OpenAI; the two never mix.
+    anthropic_api_key: str = ""
+    reviewer_model: str = "claude-opus-5"
 
     # CORS - comma-separated list of allowed origins
     # Default includes production domains + localhost for dev

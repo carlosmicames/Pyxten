@@ -61,6 +61,11 @@ class ArcGISPRClient:
 
             features = data.get("features", [])
 
+            # How the match was obtained. A point-in-polygon hit is the parcel;
+            # a buffer hit may be a NEIGHBOUR's parcel, and any caller making a
+            # determination needs to be able to tell the difference.
+            matched_by = "within"
+
             # Fallback: if no result with esriSpatialRelWithin, try intersects with 50m buffer
             # (handles points near polygon boundaries)
             if not features:
@@ -79,6 +84,12 @@ class ArcGISPRClient:
                 fallback_response.raise_for_status()
                 fallback_data = fallback_response.json()
                 features = fallback_data.get("features", [])
+                if features:
+                    matched_by = "buffer"
+                # More than one polygon within 50 m means the point sits near a
+                # boundary and the zoning cannot be attributed to one parcel.
+                if len(features) > 1:
+                    matched_by = "ambiguous"
 
             if not features:
                 return {
@@ -111,6 +122,8 @@ class ArcGISPRClient:
                 "success": True,
                 "district_code": district_code,
                 "district_name": district_name,
+                "matched_by": matched_by,
+                "candidates": len(features),
                 "error": None,
             }
 

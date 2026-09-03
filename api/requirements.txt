@@ -12,3 +12,7 @@ reportlab==4.1.0
 openai>=1.0.0
 googlemaps==4.10.0
 stripe==8.0.0
+# Reviewer console: document classification (Anthropic only on this path)
+anthropic>=0.40.0
+# Reviewer console: PDF page counting and text extraction
+pypdf>=5.0.0

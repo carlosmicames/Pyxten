@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 from app.config import get_settings
-from app.routers import projects, validations, folders, chat, address, pcoc, documents, billing
+from app.routers import projects, validations, folders, chat, address, pcoc, documents, billing, reviewer
 
 
 # Configure logging
@@ -46,6 +46,8 @@ app.include_router(chat.router)
 app.include_router(pcoc.router)
 app.include_router(documents.router)
 app.include_router(billing.router)
+# Reviewer console. Isolated under /reviewer; applicant routes above are untouched.
+app.include_router(reviewer.router)
 
 
 @app.get("/")
